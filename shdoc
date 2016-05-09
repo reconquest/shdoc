@@ -67,11 +67,7 @@ in_description {
         sub(/^# /, "")
         sub(/^#$/, "")
 
-        if ($0) {
-            $0 = $0 "\n"
-        }
-
-        docblock = docblock $0
+        docblock = docblock "\n" $0
     }
 }
 
