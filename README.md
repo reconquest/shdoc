@@ -67,3 +67,9 @@ _Function has no arguments._
 
 * [some:other:func()](#some:other:func())
 
+# Examples
+
+See example documentation on:
+
+* [tests.sh](https://github.com/reconquest/tests.sh/blob/master/REFERENCE.md)
+* [coproc.bash](https://github.com/reconquest/coproc.bash/blob/master/REFERENCE.md)
