@@ -1,161 +1,302 @@
 #!/usr/bin/awk -f
 
+################################################################################
+# @title shDoc
+#
+# @author Stanislav Seletskiy (s.seletskiy@gmail.com)
+# @author Daniel Theuke (daniel.theuke@synaix.de)
+# @author Christopher Quadflieg (christopher.quadflieg@synaix.de)
+#
+# @dependency gawk
+#
+# @source https://github.com/reconquest/shdoc
+################################################################################
+
 BEGIN {
-    if (! style) {
-        style = "github"
-    }
+  if (! style) {
+    style = "github"
+  }
 
-    styles["github", "h1", "from"] = ".*"
-    styles["github", "h1", "to"] = "## &"
+  styles["github", "title", "from"] = ".*"
+  styles["github", "title", "to"] = "# &"
 
-    styles["github", "h2", "from"] = ".*"
-    styles["github", "h2", "to"] = "### &"
+  styles["github", "h1", "from"] = ".*"
+  styles["github", "h1", "to"] = "## &"
 
-    styles["github", "h3", "from"] = ".*"
-    styles["github", "h3", "to"] = "#### &"
+  styles["github", "h2", "from"] = ".*"
+  styles["github", "h2", "to"] = "### &"
 
-    styles["github", "code", "from"] = ".*"
-    styles["github", "code", "to"] = "```&"
+  styles["github", "h3", "from"] = ".*"
+  styles["github", "h3", "to"] = "#### &"
 
-    styles["github", "/code", "to"] = "```"
+  styles["github", "code", "from"] = ".*"
+  styles["github", "code", "to"] = "```&"
 
-    styles["github", "argN", "from"] = "^(\\$[0-9]) (\\S+)"
-    styles["github", "argN", "to"] = "**\\1** (\\2):"
+  styles["github", "/code", "to"] = "```"
 
-    styles["github", "arg@", "from"] = "^\\$@ (\\S+)"
-    styles["github", "arg@", "to"] = "**...** (\\1):"
+  styles["github", "argN", "from"] = "^(\\$[0-9]+) (\\S+)"
+  styles["github", "argN", "to"] = "**\\1** (\\2):"
 
-    styles["github", "li", "from"] = ".*"
-    styles["github", "li", "to"] = "* &"
+  styles["github", "arg@", "from"] = "^\\$@ (\\S+)"
+  styles["github", "arg@", "to"] = "**...** (\\1):"
 
-    styles["github", "i", "from"] = ".*"
-    styles["github", "i", "to"] = "_&_"
+  styles["github", "li", "from"] = ".*"
+  styles["github", "li", "to"] = "-   &"
 
-    styles["github", "anchor", "from"] = ".*"
-    styles["github", "anchor", "to"] = "[&](#&)"
+  styles["github", "i", "from"] = ".*"
+  styles["github", "i", "to"] = "_&_"
 
-    styles["github", "exitcode", "from"] = "([0-9]) (.*)"
-    styles["github", "exitcode", "to"] = "**\\1**: \\2"
+  styles["github", "b", "from"] = ".*"
+  styles["github", "b", "to"] = "**&**"
+
+  styles["github", "anchor", "from"] = ".*"
+  styles["github", "anchor", "to"] = "[&](#&)"
+
+  styles["github", "exitcode", "from"] = "([0-9]) (.*)"
+  styles["github", "exitcode", "to"] = "**\\1**: \\2"
 }
 
 function render(type, text) {
-    return gensub( \
-        styles[style, type, "from"],
-        styles[style, type, "to"],
-        "g",
-        text \
-    )
+  return gensub( \
+    styles[style, type, "from"],
+    styles[style, type, "to"],
+    "g",
+    text \
+  )
+}
+
+function mdescape(text) {
+  # Escape characters
+  gsub(/\$_/, "$\\_", text)
+  gsub(/ _/, " \\_", text)
+  gsub(/(.+)\*/, "\1\\*", text)
+  return text
+}
+
+in_block {
+  last_block = in_block
+  if ( /^# ?$/ ) {
+    emptyline = 1
+  } else if ( /^[^#]|^# @|^##+/ ) {
+    in_block = 0
+    emptyline = 0
+  } else if (in_block == "code") {
+    if (! /^#[ ]{3}/) {
+      in_block = 0
+
+      docblock = docblock "\n" render("/code") "\n"
+    } else {
+      sub(/^#[ ]{3}/, "")
+
+      docblock = docblock "\n" $0
+    }
+  } else if (in_block == "title") {
+    sub(/^# */, "")
+
+    titleblock = titleblock "\n" $0
+  } else if (in_block == "description") {
+    sub(/^# ?/, "")
+
+    if (emptyline) {
+      docblock = docblock "\n"
+      emptyline = 0
+    }
+    docblock = docblock "\n" mdescape($0)
+  } else if (in_block == "return" || in_block == "var" || in_block == "param") {
+    sub(/^# */, "")
+
+    docblock = docblock "\n    " $0
+  }
 }
 
 /^# @description/ {
-    in_description = 1
-    in_example = 0
-
-    has_example = 0
-    has_args = 0
-    has_exitcode = 0
-    has_stdout = 0
-
-    docblock = ""
-}
-
-in_description {
-    if (/^[^#]|^# @[^d]/) {
-        in_description = 0
-    } else {
-        sub(/^# @description /, "")
-        sub(/^# /, "")
-        sub(/^#$/, "")
-
-        docblock = docblock "\n" $0
+  if (has_title) {
+    has_title = 0
+    if (versionblock) {
+      titleblock = titleblock "\n" render("b", "Version " versionblock) "\n"
+      versionblock = 0
     }
-}
-
-in_example {
-    if (! /^#[ ]{3}/) {
-        in_example = 0
-
-        docblock = docblock "\n" render("/code") "\n"
-    } else {
-        sub(/^#[ ]{3}/, "")
-
-        docblock = docblock "\n" $0
+    if (authorblock != "") {
+      titleblock = titleblock "\n" render("h1", "Authors") "\n" authorblock
+      authorblock = 0
     }
+    titleblock = titleblock "\n\n" render("h1", "TOC")
+  }
+  in_block = "description"
+
+  has_args = 0
+  has_vars = 0
+  has_return = 0
+
+  has_exitcode = 0
+  has_stdout = 0
+
+  sub(/^# @description /, "")
+  docblock = "\n" $0
 }
 
-/^# @example/ {
-    in_example = 1
-
-    docblock = docblock "\n" render("h3", "Example")
-    docblock = docblock "\n\n" render("code", "bash")
+/^# @title/ {
+  has_title = 1
+  in_block = "title"
+  sub(/^# @title /, "")
+  titleblock = render("title", $0)
+  authorblock = ""
+  versionblock = 0
 }
 
-/^# @arg/ {
-    if (!has_args) {
-        has_args = 1
-
-        docblock = docblock "\n" render("h2", "Arguments") "\n\n"
-    }
-
-    sub(/^# @arg /, "")
-
-    $0 = render("argN", $0)
-    $0 = render("arg@", $0)
-
-    docblock = docblock render("li", $0) "\n"
+/^# @version/ {
+  in_block = 0
+  sub(/^# @version /, "")
+  versionblock = $0
 }
 
-/^# @noargs/ {
-    docblock = docblock "\n" render("i", "Function has no arguments.") "\n"
+/^# @authors?/ {
+  in_block = 0
+  sub(/^# @author /, "")
+  authorblock = authorblock "\n" render("li", $0)
+}
+
+/^# @(example | code)/ {
+  in_block = "code"
+  docblock = docblock "\n\n" render("h3", "Example")
+  docblock = docblock "\n\n" render("code", "bash")
+
+  sub(/^# @description /, "")
+
+  docblock = docblock "\n" $0
+}
+
+/^# @vars?/ {
+  in_block = "var"
+  if (!has_vars) {
+    has_vars = 1
+
+    docblock = docblock "\n\n" render("h2", "Variables") "\n"
+  }
+
+  sub(/^# @vars? /, "")
+
+  # Escape characters
+  gsub(/\$_/, "$\\_")
+  gsub(/ _/, " \\_")
+  gsub(/*/, "\\*")
+  $0 = render("argN", $0)
+  #$0 = render("arg@", $0)
+
+  docblock = docblock "\n" render("li", $0)
+}
+
+/^# @(args?|params?)/ {
+  in_block = "param"
+  if (!has_args) {
+    has_args = 1
+
+    docblock = docblock "\n\n" render("h2", "Arguments") "\n"
+  }
+
+  sub(/^# @(args?|params?) /, "")
+
+  # Escape characters
+  mdescape($0)
+  $0 = render("argN", $0)
+  # $0 = render("arg@", $0)
+
+  docblock = docblock "\n" render("li", $0)
+}
+
+/^# @noargs?/ {
+  in_block = 0
+  docblock = docblock "\n\n" render("i", "Function has no arguments.")
 }
 
 /^# @exitcode/ {
-    if (!has_exitcode) {
-        has_exitcode = 1
+  in_block = "result"
+  if (!has_exitcode) {
+    has_exitcode = 1
 
-        docblock = docblock "\n" render("h2", "Exit codes") "\n\n"
-    }
+    docblock = docblock "\n\n" render("h2", "Exit codes") "\n"
+  }
 
-    sub(/^# @exitcode /, "")
+  sub(/^# @exitcode /, "")
 
-    $0 = render("exitcode", $0)
+  $0 = render("exitcode", $0)
 
-    docblock = docblock render("li", $0) "\n"
+  docblock = docblock  "\n" render("li", $0)
 }
 
 /^# @see/ {
-    sub(/# @see /, "")
+  in_block = "see_also"
+  sub(/# @see /, "")
 
-    $0 = render("anchor", $0)
-    $0 = render("li", $0)
+  $0 = render("anchor", $0)
+  $0 = render("li", $0)
 
-    docblock = docblock "\n" render("h3", "See also") "\n\n" $0 "\n"
+  docblock = docblock "\n" render("h3", "See also") "\n\n" $0
+}
+
+/^# @uses?plain/ {
+  in_block = "uses"
+  if (last_block != in_block) {
+    docblock = docblock "\n\n" render("h3", "Uses") "\n"
+  }
+
+  sub(/# @uses?plain /, "")
+
+  docblock = docblock "\n" render("li", $0)
+}
+
+/^# @uses? / {
+  in_block = "uses"
+  if (last_block != in_block) {
+    docblock = docblock "\n\n" render("h3", "Uses") "\n"
+  }
+
+  sub(/# @uses? /, "")
+
+  $0 = render("anchor", $0)
+
+  docblock = docblock "\n" render("li", $0)
+}
+
+/^# @returns?/ {
+  in_block = "return"
+  if (!has_return) {
+    has_return = 1;
+    docblock = docblock "\n\n" render("h2", "Returns") "\n"
+  }
+
+  sub(/^# @returns? /, "")
+
+  docblock = docblock "\n" render("li", $0)
 }
 
 /^# @stdout/ {
-    has_stdout = 1
+  in_block = "return"
+  if (!has_return) {
+    has_return = 1;
+    docblock = docblock "\n" render("h2", "Output on stdout") "\n"
+  }
 
-    sub(/^# @stdout /, "")
+  sub(/^# @stdout /, "")
 
-    docblock = docblock "\n" render("h2", "Output on stdout")
-    docblock = docblock "\n\n" render("li", $0) "\n"
+  docblock = docblock "\n" render("li", $0)
 }
 
-/^(function )?([a-zA-Z0-9_:-]+)(\(\))? \{/ && docblock != "" {
-    sub(/^function /, "")
+/^(function )?([a-zA-Z0-9_:\-\.]+)(\(\))? \{/ && docblock != "" {
+  sub(/^function /, "")
 
-    doc = doc "\n" render("h1", $1) "\n" docblock
+  doc = doc "\n* * *\n\n" render("h1", $1) "\n" docblock "\n"
 
-    url = $1
-    gsub(/\W/, "", url)
+  url = $1
+  gsub(/\W/, "", url)
 
-    toc = toc "\n" "* [" $1 "](#" url ")"
+  toc = toc "\n" render("li", "[" $1 "](#" url ")")
 
-    docblock = ""
+  docblock = ""
 }
 
 END {
-    print toc
-    print ""
-    print doc
+  print titleblock
+  print toc
+  print doc
 }
