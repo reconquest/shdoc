@@ -154,6 +154,21 @@ in_example {
     docblock = ""
 }
 
+/^# @name/ {
+    sub(/^# @name /, "")
+
+    name = $0
+
+    doc = doc "\n" render("h1", $name) "\n" docblock
+
+    url = $name
+    gsub(/\W/, "", url)
+
+    toc = toc "\n" "* [" $name "](#" url ")"
+
+    docblock = ""
+}
+
 END {
     print toc
     print ""
