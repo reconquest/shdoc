@@ -5,6 +5,9 @@ BEGIN {
         style = "github"
     }
 
+    styles["github", "title", "from"] = ".*"
+    styles["github", "title", "to"] = "# &"
+
     styles["github", "h1", "from"] = ".*"
     styles["github", "h1", "to"] = "## &"
 
@@ -141,7 +144,7 @@ in_example {
     docblock = docblock "\n\n" render("li", $0) "\n"
 }
 
-/^(function )?([a-zA-Z0-9_:-]+)(\(\))? \{/ && docblock != "" {
+/^(function\s+)?([a-zA-Z0-9_:-]+)(\s*)(\((\s*)\))?(\s*)\{/ && docblock != "" {
     sub(/^function /, "")
 
     doc = doc "\n" render("h1", $1) "\n" docblock
@@ -150,6 +153,21 @@ in_example {
     gsub(/\W/, "", url)
 
     toc = toc "\n" "* [" $1 "](#" url ")"
+
+    docblock = ""
+}
+
+/^# @name/ {
+    sub(/^# @name /, "")
+
+    name = $0
+
+    doc = doc "\n" render("h1", $name) "\n" docblock
+
+    url = $name
+    gsub(/\W/, "", url)
+
+    toc = toc "\n" "* [" $name "](#" url ")"
 
     docblock = ""
 }
