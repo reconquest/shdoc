@@ -47,7 +47,7 @@ function render(type, text) {
     )
 }
 
-/^# @description/ {
+/^[[:space:]]*# @description/ {
     in_description = 1
     in_example = 0
 
@@ -83,14 +83,14 @@ in_example {
     }
 }
 
-/^# @example/ {
+/^[[:space:]]*# @example/ {
     in_example = 1
 
     docblock = docblock "\n" render("h3", "Example")
     docblock = docblock "\n\n" render("code", "bash")
 }
 
-/^# @arg/ {
+/^[[:space:]]*# @arg/ {
     if (!has_args) {
         has_args = 1
 
@@ -105,11 +105,11 @@ in_example {
     docblock = docblock render("li", $0) "\n"
 }
 
-/^# @noargs/ {
+/^[[:space:]]*# @noargs/ {
     docblock = docblock "\n" render("i", "Function has no arguments.") "\n"
 }
 
-/^# @exitcode/ {
+/^[[:space:]]*# @exitcode/ {
     if (!has_exitcode) {
         has_exitcode = 1
 
@@ -123,7 +123,7 @@ in_example {
     docblock = docblock render("li", $0) "\n"
 }
 
-/^# @see/ {
+/^[[:space:]]*# @see/ {
     sub(/# @see /, "")
 
     $0 = render("anchor", $0)
