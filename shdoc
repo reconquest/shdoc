@@ -60,24 +60,24 @@ function render(type, text) {
 }
 
 in_description {
-    if (/^[^#]|^# @[^d]/) {
+    if (/^[^[[:space:]]*#]|^[[:space:]]*# @[^d]/) {
         in_description = 0
     } else {
-        sub(/^# @description /, "")
-        sub(/^# /, "")
-        sub(/^#$/, "")
+        sub(/^[[:space:]]*# @description /, "")
+        sub(/^[[:space:]]*# /, "")
+        sub(/^[[:space:]]*#$/, "")
 
         docblock = docblock "\n" $0
     }
 }
 
 in_example {
-    if (! /^#[ ]{3}/) {
+    if (! /^[[:space:]]*#[ ]{3}/) {
         in_example = 0
 
         docblock = docblock "\n" render("/code") "\n"
     } else {
-        sub(/^#[ ]{3}/, "")
+        sub(/^[[:space:]]*#[ ]{3}/, "")
 
         docblock = docblock "\n" $0
     }
@@ -97,7 +97,7 @@ in_example {
         docblock = docblock "\n" render("h2", "Arguments") "\n\n"
     }
 
-    sub(/^# @arg /, "")
+    sub(/^[[:space:]]*# @arg /, "")
 
     $0 = render("argN", $0)
     $0 = render("arg@", $0)
@@ -116,7 +116,7 @@ in_example {
         docblock = docblock "\n" render("h2", "Exit codes") "\n\n"
     }
 
-    sub(/^# @exitcode /, "")
+    sub(/^[[:space:]]*# @exitcode /, "")
 
     $0 = render("exitcode", $0)
 
@@ -132,10 +132,10 @@ in_example {
     docblock = docblock "\n" render("h3", "See also") "\n\n" $0 "\n"
 }
 
-/^[[:space:]]# @stdout/ {
+/^[[:space:]]*# @stdout/ {
     has_stdout = 1
 
-    sub(/^# @stdout /, "")
+    sub(/^[[:space:]]*# @stdout /, "")
 
     docblock = docblock "\n" render("h2", "Output on stdout")
     docblock = docblock "\n\n" render("li", $0) "\n"
