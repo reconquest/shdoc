@@ -132,7 +132,7 @@ in_example {
     docblock = docblock "\n" render("h3", "See also") "\n\n" $0 "\n"
 }
 
-/^# @stdout/ {
+/^[[:space:]]# @stdout/ {
     has_stdout = 1
 
     sub(/^# @stdout /, "")
