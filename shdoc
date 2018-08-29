@@ -141,7 +141,7 @@ in_example {
     docblock = docblock "\n\n" render("li", $0) "\n"
 }
 
-/^(function )?([a-zA-Z0-9_:-]+)(\(\))? \{/ && docblock != "" {
+/^(function )?[[:space:]]*([a-zA-Z0-9_:.-]+)(\(\))? \{/ && docblock != "" {
     sub(/^function /, "")
 
     doc = doc "\n" render("h1", $1) "\n" docblock
