@@ -4,6 +4,24 @@ Converts comments to function to reference markdown documentation.
 
 # Usage
 
+## Global Script tags
+
+shdoc will match comments in the following form on top of a script file:
+```sh
+#!/bin/bash
+#
+# @file Title of file script
+# @brief Small description of the script.
+```
+
+Will produce following output:
+
+# Title of file script
+
+Small description of the script.
+
+## Function tags
+
 shdoc will match comments in the following form before function definitions:
 
 ```sh
