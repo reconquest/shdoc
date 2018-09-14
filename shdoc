@@ -124,7 +124,7 @@ in_example {
 }
 
 /^[[:space:]]*# @see/ {
-    sub(/# @see /, "")
+    sub(/[[:space:]]*# @see /, "")
 
     $0 = render("anchor", $0)
     $0 = render("li", $0)
@@ -142,7 +142,7 @@ in_example {
 }
 
 /^[[:space:]]*(function )?[[:space:]]*([a-zA-Z0-9_:.-]+)(\(\))? \{/ && docblock != "" {
-    sub(/^function /, "")
+    sub(/^[[:space:]]*function /, "")
 
     doc = doc "\n" render("h1", $1) "\n" docblock
 
