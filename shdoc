@@ -6,13 +6,13 @@ BEGIN {
     }
 
     styles["github", "h1", "from"] = ".*"
-    styles["github", "h1", "to"] = "## &"
+    styles["github", "h1", "to"] = "# &"
 
     styles["github", "h2", "from"] = ".*"
-    styles["github", "h2", "to"] = "### &"
+    styles["github", "h2", "to"] = "## &"
 
     styles["github", "h3", "from"] = ".*"
-    styles["github", "h3", "to"] = "#### &"
+    styles["github", "h3", "to"] = "### &"
 
     styles["github", "code", "from"] = ".*"
     styles["github", "code", "to"] = "```&"
@@ -45,6 +45,16 @@ function render(type, text) {
         "g",
         text \
     )
+}
+
+/^[[:space:]]*# @filename/ {
+    sub(/^[[:space:]]*# @filename /, "")
+    filedoc = render("h1", $1) "\n"
+}
+
+/^[[:space:]]*# @filedescription/ {
+    sub(/^[[:space:]]*# @filedescription /, "")
+    filedoc = filedoc "\n" $0
 }
 
 /^[[:space:]]*# @description/ {
@@ -94,7 +104,7 @@ in_example {
     if (!has_args) {
         has_args = 1
 
-        docblock = docblock "\n" render("h2", "Arguments") "\n\n"
+        docblock = docblock "\n" render("h3", "Arguments") "\n\n"
     }
 
     sub(/^[[:space:]]*# @arg /, "")
@@ -113,7 +123,7 @@ in_example {
     if (!has_exitcode) {
         has_exitcode = 1
 
-        docblock = docblock "\n" render("h2", "Exit codes") "\n\n"
+        docblock = docblock "\n" render("h3", "Exit codes") "\n\n"
     }
 
     sub(/^[[:space:]]*# @exitcode /, "")
@@ -124,12 +134,12 @@ in_example {
 }
 
 /^[[:space:]]*# @see/ {
-    sub(/# @see /, "")
+    sub(/[[:space:]]*# @see /, "")
 
     $0 = render("anchor", $0)
     $0 = render("li", $0)
 
-    docblock = docblock "\n" render("h3", "See also") "\n\n" $0 "\n"
+    docblock = docblock "\n" render("h4", "See also") "\n\n" $0 "\n"
 }
 
 /^[[:space:]]*# @stdout/ {
@@ -137,14 +147,14 @@ in_example {
 
     sub(/^[[:space:]]*# @stdout /, "")
 
-    docblock = docblock "\n" render("h2", "Output on stdout")
+    docblock = docblock "\n" render("h3", "Output on stdout")
     docblock = docblock "\n\n" render("li", $0) "\n"
 }
 
 /^[[:space:]]*(function )?[[:space:]]*([a-zA-Z0-9_:.-]+)(\(\))? \{/ && docblock != "" {
-    sub(/^function /, "")
+    sub(/^[[:space:]]*function /, "")
 
-    doc = doc "\n" render("h1", $1) "\n" docblock
+    doc = doc "\n" render("h2", $1) "\n" docblock
 
     url = $1
     gsub(/\W/, "", url)
@@ -155,6 +165,9 @@ in_example {
 }
 
 END {
+    if (filedoc != "") {
+        print filedoc
+    }
     print toc
     print ""
     print doc
