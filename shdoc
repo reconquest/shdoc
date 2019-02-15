@@ -34,7 +34,7 @@ BEGIN {
     styles["github", "anchor", "from"] = ".*"
     styles["github", "anchor", "to"] = "[&](#&)"
 
-    styles["github", "exitcode", "from"] = "([0-9]) (.*)"
+    styles["github", "exitcode", "from"] = "([>!]?[0-9]{1,3}) (.*)"
     styles["github", "exitcode", "to"] = "**\\1**: \\2"
 }
 
