@@ -1,4 +1,4 @@
-#!/usr/bin/awk -f
+#!/usr/local/bin/gawk -f
 
 BEGIN {
     if (! style) {
@@ -45,6 +45,10 @@ function render(type, text) {
         "g",
         text \
     )
+}
+
+/^[[:space:]]*# @internal/ {
+    is_internal = 1
 }
 
 /^[[:space:]]*# @file/ {
@@ -152,14 +156,18 @@ in_example {
 }
 
 /^[[:space:]]*(function )?[[:space:]]*([a-zA-Z0-9_:.-]+)(\(\))? \{/ && docblock != "" {
-    sub(/^[[:space:]]*function /, "")
+    if (is_internal) {
+        is_internal = 0
+    } else {
+        sub(/^[[:space:]]*function /, "")
 
-    doc = doc "\n" render("h2", $1) "\n" docblock
+        doc = doc "\n" render("h2", $1) "\n" docblock
 
-    url = $1
-    gsub(/\W/, "", url)
+        url = $1
+        gsub(/\W/, "", url)
 
-    toc = toc "\n" "* [" $1 "](#" url ")"
+        toc = toc "\n" "* [" $1 "](#" url ")"
+    }
 
     docblock = ""
 }
