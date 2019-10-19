@@ -50,6 +50,8 @@ some:first:func() {
 `shdoc.awk` has no args and expects shell script with comments as described
 above on the stdin and will markdown output result on the stdout.
 
+it also supports tag @internal, which disables documentation generation for function that has the tag in heading comment
+
 Will produce following output:
 
 ## some:first:func()
