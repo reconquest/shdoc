@@ -1,9 +1,11 @@
-#!/usr/bin/awk -f
+#!/usr/local/bin/gawk -f
 
 BEGIN {
     if (! style) {
         style = "github"
     }
+
+    context = ""
 
     styles["github", "h1", "from"] = ".*"
     styles["github", "h1", "to"] = "# &"
@@ -13,6 +15,9 @@ BEGIN {
 
     styles["github", "h3", "from"] = ".*"
     styles["github", "h3", "to"] = "### &"
+
+    styles["github", "h4", "from"] = ".*"
+    styles["github", "h4", "to"] = "#### &"
 
     styles["github", "code", "from"] = ".*"
     styles["github", "code", "to"] = "```&"
@@ -38,6 +43,19 @@ BEGIN {
     styles["github", "exitcode", "to"] = "**\\1**: \\2"
 }
 
+function uncomment(line) {
+    sub(/^[[:space:]]*# ?/, "", line)
+    return line
+}
+
+function unindent(levels, line) {
+    for (i = 0; i < levels; i++ ) {
+        sub(/^  /, "", line)
+    }
+
+    return line
+}
+
 function render(type, text) {
     return gensub( \
         styles[style, type, "from"],
@@ -47,11 +65,58 @@ function render(type, text) {
     )
 }
 
-/^[[:space:]]*# @internal/ {
+function addCodeLine(line) {
+    line = uncomment(line)
+    line = unindent(1, line)
+
+    if (code_lines == "") {
+        code_lines = line
+    } else {
+        code_lines = code_lines "\n" line
+    }
+}
+
+function renderCode(lang) {
+    if (code_lines == "") {
+        return ""
+    }
+
+    if (substr(code_lines, length(code_lines), 1) != "\n") {
+        code_lines = code_lines "\n"
+    }
+
+    code_block = \
+        render("code", lang) "\n" \
+        code_lines \
+        render("/code")
+
+    code_lines = ""
+
+    return code_block
+}
+
+function match_tag() {
+    match($0, /^[[:space:]]*#[[:space:]]+@([[:alnum:]]+)/, match_groups)
+    return match_groups[1]
+}
+
+function is_tag(tag_name) {
+    return match_tag() == tag_name
+}
+
+tag = match_tag() {
+    context=tag
+}
+
+/^[[:space:]]*[^#]/ {
+    context = ""
+}
+
+is_tag("internal") {
     is_internal = 1
 }
 
-/^[[:space:]]*# @file/ {
+is_tag("file") {
     sub(/^[[:space:]]*# @file /, "")
     filedoc = render("h1", $1) "\n"
 }
@@ -61,50 +126,50 @@ function render(type, text) {
     filedoc = filedoc "\n" $0
 }
 
-/^[[:space:]]*# @description/ {
-    in_description = 1
-    in_example = 0
-
-    has_example = 0
-    has_args = 0
-    has_exitcode = 0
-    has_stdout = 0
-
+is_tag("description") {
     docblock = ""
 }
 
-in_description {
-    if (/^[^[[:space:]]*#]|^[[:space:]]*# @[^d]/) {
-        in_description = 0
-    } else {
-        sub(/^[[:space:]]*# @description /, "")
-        sub(/^[[:space:]]*# /, "")
-        sub(/^[[:space:]]*#$/, "")
+context == "description" {
+    line = $0
+    sub(/^[[:space:]]*# @description ?/, "", line)
+    line = uncomment(line)
 
-        docblock = docblock "\n" $0
+    if (docblock == "") {
+        docblock = line
+    } else {
+        docblock = docblock "\n" line
     }
 }
 
 in_example {
-    if (! /^[[:space:]]*#[ ]{3}/) {
-        in_example = 0
-
-        docblock = docblock "\n" render("/code") "\n"
-    } else {
-        sub(/^[[:space:]]*#[ ]{3}/, "")
-
-        docblock = docblock "\n" $0
+    if (!is_tag("example")) {
+        if (context != "example") {
+            docblock = docblock "\n" renderCode("bash") "\n"
+            in_example = 0
+        } else {
+            addCodeLine($0)
+        }
     }
 }
 
-/^[[:space:]]*# @example/ {
-    in_example = 1
+is_tag("example") {
+    if (in_example) {
+        docblock = docblock "\n" renderCode("bash") "\n"
+    } else {
+        in_example = 1
+    }
 
-    docblock = docblock "\n" render("h3", "Example")
-    docblock = docblock "\n\n" render("code", "bash")
+    sub(/^[[:space:]]*# @example /, "")
+
+    if ($0 == "") {
+        docblock = docblock "\n" render("h3", "Example")
+    } else {
+        docblock = docblock "\n" render("h3", "Example: " $0)
+    }
 }
 
-/^[[:space:]]*# @arg/ {
+is_tag("arg") {
     if (!has_args) {
         has_args = 1
 
@@ -119,26 +184,26 @@ in_example {
     docblock = docblock render("li", $0) "\n"
 }
 
-/^[[:space:]]*# @noargs/ {
+is_tag("noargs") {
     docblock = docblock "\n" render("i", "Function has no arguments.") "\n"
 }
 
-/^[[:space:]]*# @exitcode/ {
+is_tag("exitcode") {
     if (!has_exitcode) {
         has_exitcode = 1
 
         docblock = docblock "\n" render("h3", "Exit codes") "\n\n"
     }
 
-    sub(/^[[:space:]]*# @exitcode /, "")
+    sub(/^[[:space:]]*# @exitcode ?/, "")
 
     $0 = render("exitcode", $0)
 
     docblock = docblock render("li", $0) "\n"
 }
 
-/^[[:space:]]*# @see/ {
-    sub(/[[:space:]]*# @see /, "")
+is_tag("see") {
+    sub(/[[:space:]]*# @see ?/, "")
 
     $0 = render("anchor", $0)
     $0 = render("li", $0)
@@ -146,18 +211,48 @@ in_example {
     docblock = docblock "\n" render("h4", "See also") "\n\n" $0 "\n"
 }
 
-/^[[:space:]]*# @stdout/ {
-    has_stdout = 1
+in_stdout {
+    if (context != "stdout") {
+        in_stdout = 0
 
-    sub(/^[[:space:]]*# @stdout /, "")
+        code = renderCode("text")
+        if (code != "") {
+            docblock = docblock "\n" code
+        }
+    } else {
+        line = uncomment($0)
+        line = unindent(1, line)
 
-    docblock = docblock "\n" render("h3", "Output on stdout")
-    docblock = docblock "\n\n" render("li", $0) "\n"
+        if (match(line, /^  /)) {
+            addCodeLine(line)
+        } else {
+            code = renderCode("text")
+            if (code != "") {
+                docblock = docblock "\n" code
+            } else {
+                docblock = docblock "\n" line
+            }
+        }
+    }
+}
+
+is_tag("stdout") {
+    in_stdout = 1
+
+    sub(/^[[:space:]]*# @stdout ?/, "")
+
+    docblock = docblock "\n" render("h3", "Output on stdout") "\n"
+    if ($0 != "") {
+        docblock = docblock "\n" render("h4", $0) "\n"
+    }
 }
 
 /^[[:space:]]*(function )?[[:space:]]*([a-zA-Z0-9_:.-]+)(\(\))? \{/ && docblock != "" {
     if (is_internal) {
         is_internal = 0
+
+        has_args = 0
+        has_exitcode = 0
     } else {
         sub(/^[[:space:]]*function /, "")
 
@@ -170,6 +265,7 @@ in_example {
     }
 
     docblock = ""
+    context = ""
 }
 
 END {
