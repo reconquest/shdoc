@@ -97,4 +97,4 @@ See example documentation on:
 
 When you want to skip documentation generation for particular function, use `@internal` tag.
 It allows you to have the same style of doc comments across the script and keep internal
-functions hidden from users
+functions hidden from users.
