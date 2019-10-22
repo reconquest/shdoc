@@ -86,6 +86,11 @@ _Function has no arguments._
 #### See also
 
 * [some:other:func()](#some:other:func())
+````
+
+When you want to skip documentation generation for particular function, use `@internal` tag.
+It allows you to have the same style of doc comments across the script and keep internal
+functions hidden from users.
 
 # Examples
 
@@ -93,8 +98,3 @@ See example documentation on:
 
 * [tests.sh](https://github.com/reconquest/tests.sh/blob/master/REFERENCE.md)
 * [coproc.bash](https://github.com/reconquest/coproc.bash/blob/master/REFERENCE.md)
-````
-
-When you want to skip documentation generation for particular function, use `@internal` tag.
-It allows you to have the same style of doc comments across the script and keep internal
-functions hidden from users.
