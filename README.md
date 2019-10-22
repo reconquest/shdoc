@@ -16,9 +16,11 @@ shdoc will match comments in the following form on top of a script file:
 
 Will produce following output:
 
+```markdown
 # Title of file script
 
 Small description of the script.
+```
 
 ## Function tags
 
@@ -51,7 +53,7 @@ some:first:func() {
 above on the stdin and will markdown output result on the stdout.
 
 Will produce following output:
-
+````markdown
 ## some:first:func()
 
 Multiline description goes here and
@@ -84,6 +86,11 @@ _Function has no arguments._
 #### See also
 
 * [some:other:func()](#some:other:func())
+````
+
+When you want to skip documentation generation for particular function, use `@internal` tag.
+It allows you to have the same style of doc comments across the script and keep internal
+functions hidden from users.
 
 # Examples
 
