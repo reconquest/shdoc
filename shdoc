@@ -166,6 +166,7 @@ in_example {
         url = $1
         if (style == "github") {
           # https://github.com/jch/html-pipeline/blob/master/lib/html/pipeline/toc_filter.rb#L44-L45
+          url = tolower(url)
           gsub(/[^[:alnum:] -]/, "", url)
           gsub(/ /, "-", url)
         }
