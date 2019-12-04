@@ -164,7 +164,12 @@ in_example {
         doc = doc "\n" render("h2", $1) "\n" docblock
 
         url = $1
-        gsub(/\W/, "", url)
+        if (style == "github") {
+          # https://github.com/jch/html-pipeline/blob/master/lib/html/pipeline/toc_filter.rb#L44-L45
+          url = tolower(url)
+          gsub(/[^[:alnum:] -]/, "", url)
+          gsub(/ /, "-", url)
+        }
 
         toc = toc "\n" "* [" $1 "](#" url ")"
     }
