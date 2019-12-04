@@ -4,6 +4,12 @@ Converts comments to function to reference markdown documentation.
 
 # Usage
 
+shdoc expects a shell script in stdin and will produce markdown as stdout.
+
+```
+$ shdoc < your-shell-script.sh > doc.md
+```
+
 ## Global Script tags
 
 shdoc will match comments in the following form on top of a script file:
