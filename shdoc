@@ -81,7 +81,10 @@ function reset() {
 }
 
 in_description {
-    if (/^[^[[:space:]]*#]|^[[:space:]]*# @[^d]/) {
+    if (/^[^[[:space:]]*#]|^[[:space:]]*# @[^d]|^[[:space:]]*[^#]/) {
+        if (!match(docblock, /\n$/)) {
+            docblock = docblock "\n"
+        }
         in_description = 0
     } else {
         sub(/^[[:space:]]*# @description /, "")
