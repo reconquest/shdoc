@@ -54,12 +54,16 @@ above on the stdin and will markdown output result on the stdout.
 
 Will produce following output:
 ````markdown
+
+* [some:first:func()](#somefirstfunc)
+
+
 ## some:first:func()
 
 Multiline description goes here and
 there
 
-#### Example
+### Example
 
 ```bash
 some:other:func a b c
@@ -76,7 +80,7 @@ _Function has no arguments._
 ### Exit codes
 
 * **0**:  If successfull.
-* >**0**: On failure
+* **>0**: On failure
 * **5**:  On some error.
 
 ### Output on stdout

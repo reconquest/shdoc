@@ -14,6 +14,9 @@ BEGIN {
     styles["github", "h3", "from"] = ".*"
     styles["github", "h3", "to"] = "### &"
 
+    styles["github", "h4", "from"] = ".*"
+    styles["github", "h4", "to"] = "#### &"
+
     styles["github", "code", "from"] = ".*"
     styles["github", "code", "to"] = "```&"
 
@@ -53,7 +56,7 @@ function render(type, text) {
 
 /^[[:space:]]*# @file/ {
     sub(/^[[:space:]]*# @file /, "")
-    filedoc = render("h1", $1) "\n"
+    filedoc = render("h1", $0) "\n"
 }
 
 /^[[:space:]]*# @brief/ {

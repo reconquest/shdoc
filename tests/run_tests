@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -euo pipefail
+
+cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+source ../vendor/github.com/reconquest/import.bash/import.bash
+
+import:use "github.com/reconquest/test-runner.bash"
+
+:cleanup() {
+    :
+}
+
+:main() {
+    trap :cleanup EXIT
+
+    cd ..
+
+    test-runner:set-local-setup tests/setup.sh
+    test-runner:set-local-teardown tests/teardown.sh
+    test-runner:set-testcases-dir tests/testcases
+
+    test-runner:run "${@}"
+}
+
+:main "${@}"
