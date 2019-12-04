@@ -50,6 +50,13 @@ function render(type, text) {
     )
 }
 
+function reset() {
+    has_example = 0
+    has_args = 0
+    has_exitcode = 0
+    has_stdout = 0
+}
+
 /^[[:space:]]*# @internal/ {
     is_internal = 1
 }
@@ -68,10 +75,7 @@ function render(type, text) {
     in_description = 1
     in_example = 0
 
-    has_example = 0
-    has_args = 0
-    has_exitcode = 0
-    has_stdout = 0
+    reset()
 
     docblock = ""
 }
@@ -158,15 +162,19 @@ in_example {
     docblock = docblock "\n\n" render("li", $0) "\n"
 }
 
-/^[[:space:]]*(function )?[[:space:]]*([a-zA-Z0-9_:.-]+)(\(\))? \{/ && docblock != "" {
+/^[ \t]*(function([ \t])+)?([a-zA-Z0-9_:-]+)([ \t]*)(\(([ \t]*)\))?[ \t]*\{/ && docblock != "" {
     if (is_internal) {
         is_internal = 0
     } else {
-        sub(/^[[:space:]]*function /, "")
+        func_name = gensub(\
+            /^[ \t]*(function([ \t])+)?([a-zA-Z0-9_:-]+)[ \t]*\(.*/, \
+            "\\3()", \
+            "g" \
+        )
 
-        doc = doc "\n" render("h2", $1) "\n" docblock
+        doc = doc "\n" render("h2", func_name) "\n" docblock
 
-        url = $1
+        url = func_name
         if (style == "github") {
           # https://github.com/jch/html-pipeline/blob/master/lib/html/pipeline/toc_filter.rb#L44-L45
           url = tolower(url)
@@ -174,10 +182,11 @@ in_example {
           gsub(/ /, "-", url)
         }
 
-        toc = toc "\n" "* [" $1 "](#" url ")"
+        toc = toc "\n" "* [" func_name "](#" url ")"
     }
 
     docblock = ""
+    reset()
 }
 
 END {
