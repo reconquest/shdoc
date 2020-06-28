@@ -1,4 +1,5 @@
-#!/usr/bin/awk -f
+#!/usr/bin/env awk -f
+# vim: ft=awk
 
 BEGIN {
     if (! style) {
@@ -165,12 +166,12 @@ in_example {
     docblock = docblock "\n\n" render("li", $0) "\n"
 }
 
-/^[ \t]*(function([ \t])+)?([a-zA-Z0-9_:-]+)([ \t]*)(\(([ \t]*)\))?[ \t]*\{/ && docblock != "" {
+/^[ \t]*(function([ \t])+)?([a-zA-Z0-9\._:-]+)([ \t]*)(\(([ \t]*)\))?[ \t]*\{/ && docblock != "" {
     if (is_internal) {
         is_internal = 0
     } else {
         func_name = gensub(\
-            /^[ \t]*(function([ \t])+)?([a-zA-Z0-9_:-]+)[ \t]*\(.*/, \
+            /^[ \t]*(function([ \t])+)?([a-zA-Z0-9\._:-]+)[ \t]*\(.*/, \
             "\\3()", \
             "g" \
         )
