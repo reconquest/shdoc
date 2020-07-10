@@ -24,9 +24,7 @@ some:first:func() {
 EOF
 
 tests:put expected <<EOF
-
 * [some:first:func()](#somefirstfunc)
-
 
 ## some:first:func()
 

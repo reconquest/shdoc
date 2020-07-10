@@ -15,10 +15,8 @@ fn2(){
 EOF
 
 tests:put expected <<EOF
-
 * [fn1()](#fn1)
 * [fn2()](#fn2)
-
 
 ## fn1()
 

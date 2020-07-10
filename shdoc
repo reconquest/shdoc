@@ -57,6 +57,16 @@ function reset() {
     has_stdout = 0
 }
 
+function append(x, text) {
+    if (x == "") {
+        x = text
+    } else {
+        x = x "\n" text
+    }
+
+    return x
+}
+
 /^[[:space:]]*# @internal/ {
     is_internal = 1
 }
@@ -165,7 +175,8 @@ in_example {
     docblock = docblock "\n\n" render("li", $0) "\n"
 }
 
-/^[ \t]*(function([ \t])+)?([a-zA-Z0-9_:-]+)([ \t]*)(\(([ \t]*)\))?[ \t]*\{/ && docblock != "" {
+/^[ \t]*(function([ \t])+)?([a-zA-Z0-9_:-]+)([ \t]*)(\(([ \t]*)\))?[ \t]*\{/ &&
+    docblock != "" && !in_example {
     if (is_internal) {
         is_internal = 0
     } else {
@@ -175,7 +186,7 @@ in_example {
             "g" \
         )
 
-        doc = doc "\n" render("h2", func_name) "\n" docblock
+        doc = append(doc, render("h2", func_name) "\n" docblock)
 
         url = func_name
         if (style == "github") {
@@ -185,7 +196,7 @@ in_example {
           gsub(/ /, "-", url)
         }
 
-        toc = toc "\n" "* [" func_name "](#" url ")"
+        toc = append(toc, "* [" func_name "](#" url ")")
     }
 
     docblock = ""
