@@ -1,4 +1,4 @@
-#!/usr/bin/awk -f
+#!/usr/bin/gawk -f
 
 BEGIN {
     if (! style) {
@@ -39,6 +39,13 @@ BEGIN {
 
     styles["github", "exitcode", "from"] = "([>!]?[0-9]{1,3}) (.*)"
     styles["github", "exitcode", "to"] = "**\\1**: \\2"
+
+    debug_enable = ENVIRON["SHDOC_DEBUG"] == "1"
+    debug_fd = ENVIRON["SHDOC_DEBUG_FD"]
+    if (!debug_fd) {
+        debug_fd = 2
+    }
+    debug_file = "/dev/fd/" debug_fd
 }
 
 function render(type, text) {
@@ -50,14 +57,84 @@ function render(type, text) {
     )
 }
 
-function reset() {
-    has_example = 0
-    has_args = 0
-    has_exitcode = 0
-    has_stdout = 0
+function render_toc_link(title) {
+    url = title
+    if (style == "github") {
+      # https://github.com/jch/html-pipeline/blob/master/lib/html/pipeline/toc_filter.rb#L44-L45
+      url = tolower(url)
+      gsub(/[^[:alnum:] -]/, "", url)
+      gsub(/ /, "-", url)
+    }
+
+    return "[" title "](#" url ")"
 }
 
-function append(x, text) {
+function render_toc_item(title) {
+    return "* " render_toc_link(title)
+}
+
+function unindent(text) {
+    split(text, text_lines, "\n")
+
+    # find a maximum level indent as a starting point
+    # find a first non empty line
+    start = 0
+    max_indent = 0
+    for (i = 0; i < length(text_lines); i++) {
+        if (text_lines[i] != "" && start == 0) {
+            start = i
+        }
+
+        match(text_lines[i], /^[ ]*/)
+        if (RLENGTH > max_indent) {
+            max_indent = RLENGTH
+        }
+    }
+
+    # find a minimum level of indentation
+    indent = max_indent
+    for (i = start; i < length(text_lines); i++) {
+        match(text_lines[i], /^[ ]*/)
+        if (RLENGTH < indent) {
+            indent = RLENGTH
+        }
+    }
+
+    # remove the minimum level of indentation and join text_lines
+    for (i = start; i < length(text_lines); i++) {
+        text_lines[i] = substr(text_lines[i], indent + 1)
+        if (i == start) {
+            result = text_lines[i]
+        } else {
+            result = result "\n" text_lines[i]
+        }
+    }
+
+    return result
+}
+
+function reset() {
+    debug("→ reset()")
+
+    delete docblock
+    description = ""
+}
+
+function handle_description() {
+    debug("→ handle_description")
+    if (description == "") {
+        debug("→ → description: empty")
+        return;
+    }
+
+    if (file_description == "") {
+        debug("→ → description: added")
+        file_description = description
+        return;
+    }
+}
+
+function concat(x, text) {
     if (x == "") {
         x = text
     } else {
@@ -67,147 +144,302 @@ function append(x, text) {
     return x
 }
 
-/^[[:space:]]*# @internal/ {
-    is_internal = 1
+function push(arr, value) {
+    arr[length(arr)+1] = value
 }
 
-/^[[:space:]]*# @file/ {
-    sub(/^[[:space:]]*# @file /, "")
-    filedoc = render("h1", $0) "\n"
-}
-
-/^[[:space:]]*# @brief/ {
-    sub(/^[[:space:]]*# @brief /, "")
-    filedoc = filedoc "\n" $0
-}
-
-/^[[:space:]]*# @description/ {
-    in_description = 1
-    in_example = 0
-
-    reset()
-
-    docblock = ""
-}
-
-in_description {
-    if (/^[^[[:space:]]*#]|^[[:space:]]*# @[^d]|^[[:space:]]*[^#]/) {
-        if (!match(docblock, /\n$/)) {
-            docblock = docblock "\n"
+function join(arr) {
+    for (i = 0; i < length(lines); i++) {
+        if (i == 0) {
+            result = lines[i]
+        } else {
+            result = result "\n" lines[i]
         }
-        in_description = 0
-    } else {
-        sub(/^[[:space:]]*# @description /, "")
-        sub(/^[[:space:]]*# /, "")
-        sub(/^[[:space:]]*#$/, "")
+    }
 
-        docblock = docblock "\n" $0
+    return result
+}
+
+function docblock_set(key, value) {
+    docblock[key] = value
+}
+
+function docblock_concat(key, value) {
+    if (key in docblock) {
+        docblock[key] = concat(docblock[key], value)
+    } else {
+        docblock[key] = value
     }
 }
 
-in_example {
-    if (! /^[[:space:]]*#[ ]{3}/) {
-        in_example = 0
+function docblock_push(key, value) {
+    docblock[key][length(docblock[key])+1] = value
+}
 
-        docblock = docblock "\n" render("/code") "\n"
+function render_docblock(func_name, description, docblock) {
+    debug("→ render_docblock")
+    debug("→ → func_name: [" func_name "]")
+    debug("→ → description: [" description "]")
+
+    lines[0] = render("h3", func_name)
+    if (description != "") {
+        push(lines, description)
+    }
+
+    if ("example" in docblock) {
+        push(lines, render("h4", "Example"))
+        push(lines, "\n" render("code", "bash"))
+        push(lines, unindent(docblock["example"]))
+        push(lines, render("/code"))
+        push(lines, "")
+    }
+
+    if ("arg" in docblock) {
+        push(lines, render("h4", "Arguments") "\n")
+        for (i in docblock["arg"]) {
+            item = docblock["arg"][i]
+            item = render("argN", item)
+            item = render("arg@", item)
+            item = render("li", item)
+            if (i == length(docblock["arg"])) {
+                item = item "\n"
+            }
+            push(lines, item)
+        }
+    }
+
+    if ("noargs" in docblock) {
+        push(lines, render("i", "Function has no arguments.") "\n")
+    }
+
+    if ("exitcode" in docblock) {
+        push(lines, render("h4", "Exit codes") "\n")
+        for (i in docblock["exitcode"]) {
+            item = render("li", render("exitcode", docblock["exitcode"][i]))
+            if (i == length(docblock["exitcode"])) {
+                item = item "\n"
+            }
+            push(lines, item)
+        }
+    }
+
+    if ("stdout" in docblock) {
+        push(lines, render("h4", "Output on stdout") "\n")
+        for (i in docblock["stdout"]) {
+            item = render("li", docblock["stdout"][i])
+            if (i == length(docblock["stdout"])) {
+                item = item "\n"
+            }
+            push(lines, item)
+        }
+    }
+
+    if ("see" in docblock) {
+        push(lines, render("h4", "See also") "\n")
+        for (i in docblock["see"]) {
+            item = render("li", render_toc_link(docblock["see"][i]))
+            push(lines, item)
+        }
+    }
+
+
+    result = join(lines)
+    delete lines
+    return join(lines)
+}
+
+function debug(msg) {
+    if (debug_enable) {
+        print "DEBUG: " msg > debug_file
+    }
+}
+
+{
+    debug("line: [" $0 "]")
+}
+
+/^[[:space:]]*# @internal/ {
+    debug("→ @internal")
+    is_internal = 1
+
+    next
+}
+
+/^[[:space:]]*# @(name|file)/ {
+    debug("→ @name|@file")
+    sub(/^[[:space:]]*# @(name|file) /, "")
+    file_title = $0
+
+    next
+}
+
+/^[[:space:]]*# @brief/ {
+    debug("→ @brief")
+    sub(/^[[:space:]]*# @brief /, "")
+    file_brief = $0
+
+    next
+}
+
+/^[[:space:]]*# @description/ {
+    debug("→ @description")
+    in_description = 1
+    in_example = 0
+
+    handle_description()
+
+    reset()
+}
+
+in_description {
+    if (/^[^[[:space:]]*#]|^[[:space:]]*# @[^d]|^[[:space:]]*[^#]|^[[:space:]]*$/) {
+        debug("→ → in_description: leave")
+        if (!match(description, /\n$/)) {
+            description = description "\n"
+        }
+
+        in_description = 0
+
+        handle_description()
     } else {
-        sub(/^[[:space:]]*#[ ]{3}/, "")
+        debug("→ → in_description: concat")
+        sub(/^[[:space:]]*# @description[[:space:]]*/, "")
+        sub(/^[[:space:]]*#[[:space:]]*/, "")
+        sub(/^[[:space:]]*#$/, "")
 
-        docblock = docblock "\n" $0
+        description = concat(description, $0)
+        next
     }
 }
 
 /^[[:space:]]*# @example/ {
+    debug("→ @example")
+
     in_example = 1
 
-    docblock = docblock "\n" render("h3", "Example")
-    docblock = docblock "\n\n" render("code", "bash")
+
+    next
+}
+
+in_example {
+    if (! /^[[:space:]]*#[ ]{1,}/) {
+        debug("→ → in_example: leave")
+        in_example = 0
+    } else {
+        debug("→ → in_example: concat")
+        sub(/^[[:space:]]*#/, "")
+
+        docblock_concat("example", $0)
+        next
+    }
+
 }
 
 /^[[:space:]]*# @arg/ {
-    if (!has_args) {
-        has_args = 1
-
-        docblock = docblock "\n" render("h3", "Arguments") "\n\n"
-    }
-
+    debug("→ @arg")
     sub(/^[[:space:]]*# @arg /, "")
 
-    $0 = render("argN", $0)
-    $0 = render("arg@", $0)
+    docblock_push("arg", $0)
 
-    docblock = docblock render("li", $0) "\n"
+    next
 }
 
 /^[[:space:]]*# @noargs/ {
-    docblock = docblock "\n" render("i", "Function has no arguments.") "\n"
+    debug("→ @noargs")
+    docblock["noargs"] = 1
+
+    next
 }
 
 /^[[:space:]]*# @exitcode/ {
-    if (!has_exitcode) {
-        has_exitcode = 1
-
-        docblock = docblock "\n" render("h3", "Exit codes") "\n\n"
-    }
-
+    debug("→ @exitcode")
     sub(/^[[:space:]]*# @exitcode /, "")
 
-    $0 = render("exitcode", $0)
+    docblock_push("exitcode", $0)
 
-    docblock = docblock render("li", $0) "\n"
+    next
 }
 
 /^[[:space:]]*# @see/ {
+    debug("→ @see")
     sub(/[[:space:]]*# @see /, "")
 
-    $0 = render("anchor", $0)
-    $0 = render("li", $0)
+    docblock_push("see", $0)
 
-    docblock = docblock "\n" render("h4", "See also") "\n\n" $0 "\n"
+    next
 }
 
 /^[[:space:]]*# @stdout/ {
-    has_stdout = 1
+    debug("→ @stdout")
 
     sub(/^[[:space:]]*# @stdout /, "")
 
-    docblock = docblock "\n" render("h3", "Output on stdout")
-    docblock = docblock "\n\n" render("li", $0) "\n"
+    docblock_push("stdout", $0)
+
+    next
 }
 
-/^[ \t]*(function([ \t])+)?([a-zA-Z0-9_:-]+)([ \t]*)(\(([ \t]*)\))?[ \t]*\{/ &&
-    docblock != "" && !in_example {
+/^[ \t]*(function([ \t])+)?([a-zA-Z0-9_:-]+)([ \t]*)(\(([ \t]*)\))?[ \t]*\{/ \
+    && (length(docblock) != 0 || description != "") && !in_example {
+    debug("→ function")
     if (is_internal) {
+        debug("→ → function: it is internal, skip")
         is_internal = 0
     } else {
+        debug("→ → function: register")
+
+        is_internal = 0
         func_name = gensub(\
             /^[ \t]*(function([ \t])+)?([a-zA-Z0-9_:-]+)[ \t]*\(.*/, \
             "\\3()", \
             "g" \
         )
 
-        doc = append(doc, render("h2", func_name) "\n" docblock)
-
-        url = func_name
-        if (style == "github") {
-          # https://github.com/jch/html-pipeline/blob/master/lib/html/pipeline/toc_filter.rb#L44-L45
-          url = tolower(url)
-          gsub(/[^[:alnum:] -]/, "", url)
-          gsub(/ /, "-", url)
-        }
-
-        toc = append(toc, "* [" func_name "](#" url ")")
+        doc = concat(doc, render_docblock(func_name, description, docblock))
+        toc = concat(toc, render_toc_item(func_name))
     }
 
-    docblock = ""
     reset()
+    next
+}
+
+/^[^#]*$/ {
+    debug("→ break")
+    handle_description();
+    reset()
+    next
+}
+
+{
+    debug("→ NOT HANDLED")
 }
 
 END {
-    if (filedoc != "") {
-        print filedoc
+    debug("→ END {")
+    debug("→ → file_title:       [" file_title "]")
+    debug("→ → file_brief:       [" file_brief "]")
+    debug("→ → file_description: [" file_description "]")
+    debug("→ END }")
+
+    if (file_title != "") {
+        print render("h1", file_title)
+
+        if (file_brief != "") {
+            print "\n" file_brief
+        }
+
+        if (file_description != "") {
+            print "\n" render("h2", "Overview")
+            print "\n" file_description
+        }
     }
-    print toc
-    print ""
-    print doc
+
+    if (toc != "") {
+        print render("h2", "Index") "\n"
+        print toc
+    }
+
+    print "\n" doc
+
+    ## TODO: add examples section
 }
