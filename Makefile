@@ -8,5 +8,6 @@ vendor/%/Makefile:
 
 include vendor/github.com/reconquest/test-runner.bash/Makefile
 
+DST = /usr/local/bin/
 install:
-	cp shdoc /usr/local/bin/
+	cp shdoc $(DST)
