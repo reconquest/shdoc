@@ -292,7 +292,7 @@ function debug(msg) {
 }
 
 in_description {
-    if (/^[^[[:space:]]*#]|^[[:space:]]*# @[^d]|^[[:space:]]*[^#]|^[[:space:]]*$/) {
+    if (/^[^[[:space:]]*#]|^[[:space:]]*# @[^d]|^[[:space:]]*[^[[:space:]]#]|^[[:space:]]*$/) {
         debug("→ → in_description: leave")
         if (!match(description, /\n$/)) {
             description = description "\n"
