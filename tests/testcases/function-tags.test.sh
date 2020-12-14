@@ -24,42 +24,42 @@ some:first:func() {
 EOF
 
 tests:put expected <<EOF
+## Index
 
 * [some:first:func()](#somefirstfunc)
 
-
-## some:first:func()
+### some:first:func()
 
 Multiline description goes here and
 there
 
-### Example
+#### Example
 
 \`\`\`bash
 some:other:func a b c
 echo 123
 \`\`\`
 
-### Arguments
+#### Arguments
 
 * **\$1** (string): Some arg.
 * **...** (any): Rest of arguments.
 
 _Function has no arguments._
 
-### Exit codes
+#### Exit codes
 
 * **0**:  If successfull.
 * **>0**: On failure
 * **5**:  On some error.
 
-### Output on stdout
+#### Output on stdout
 
 * Path to something.
 
 #### See also
 
-* [some:other:func()](#some:other:func())
+* [some:other:func()](#someotherfunc)
 EOF
 
 assert
