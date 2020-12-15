@@ -1,9 +1,9 @@
 # shdoc
 
-shdoc is a documentation generator for bash/zsh/sh for generating API documentation in Markdown from
+`shdoc` is a documentation generator for bash/zsh/sh for generating API documentation in Markdown from
 shell scripts source.
 
-shdoc parses [annotations](#features) in the beginning of a given file and alongside function
+`shdoc` parses [annotations](#features) in the beginning of a given file and alongside function
 definitions, and creates a markdown file with ready to use documentation.
 
 ## Index
@@ -262,6 +262,27 @@ $ shdoc < your-shell-script.sh > doc.md
 ### Arch Linux
 
 Arch Linux users can install shdoc using package in AUR: [shdoc-git](https://aur.archlinux.org/packages/shdoc-git)
+
+### Mac OS-X & Other UNIXes
+
+```bash
+git clone --depth=1 https://github.com/reconquest/shdoc
+cd shdoc
+sudo make install
+```
+
+You can also run `make help`:
+
+```bash
+❯ make help
+examples         Generate documentation for scripts in examples folder
+help             Prints help message auto-generated from the comments.
+install          Install shdoc into /usr/local/bin
+test             Run tests
+```
+
+Installation process invokes a provided setup script in `bin/setup`, which in turn invokes `bin/setup-<osname>` script, where `osname` is the lower-case output of `uname -s`.
+
 
 ### Using Git
 

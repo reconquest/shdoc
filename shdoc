@@ -1,6 +1,9 @@
 #!/usr/bin/env awk -f
-# NOTE: on OS-X you must install gawk with `brew install gawk`
 # vim: ft=awk
+#
+# NOTE: on OS-X you must install gawk with `brew install gawk` or
+#       run `bash osx-setup.sh`
+#
 
 BEGIN {
     if (! style) {

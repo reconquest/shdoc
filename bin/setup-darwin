@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# vim: ft=bash
+#
+# © 2020 github.com/kigster
+# Contributed by Konstantin Gredeskoul, under the MIT License
+#
+# This script installs required dependencies on OS-X, which make shdoc work.
+# The are installed using Homebrew, which itself is installed if not found.
+#
+
+declare -a binaries
+declare -a packages
+
+# What needs to be there
+export binaries=(gawk gsed greadlink)
+
+# Brew pakage names containing each binary
+export packages=(gawk gnu-sed coreutils)
+
+# @description Creates a symlink from /usr/local/bin/readlink to /usr/local/bin/greadlink
+function shdoc::setup::post-install-for::greadlink() {
+  local gnu_binary="/usr/local/bin/greadlink"
+  local regular_binary="/usr/local/bin/readlink"
+
+  [[ -x ${gnu_binary} ]] || {
+    smack "Expected to find ${gnu_binary}, but didn't."
+    exit 1
+  }
+
+  local command="ln -nfs \"${gnu_binary}\" \"${regular_binary}\""
+  eval "${command}" || eval "sudo ${command}"
+}
+
+# @description Installs the given binary via a provided Brew Package.
+function shdoc::setup::install-binary-with-brew() {
+  local binary="${1}"
+  local package="${2}"
+
+  command -v "${binary}" >/dev/null && return 0
+
+  quack -n "Installing executable ${binary} from the package ${package}... "
+  set -e
+  brew install "${package}" 1>/dev/null 2>&1 
+  set +e
+  quack -n "re-creating symlinks... "
+  brew unlink "${package}" && brew link "${package}"
+  quack " done."
+}
+
+function shdoc::setup::install-shdoc-dependencies() {
+  local index=0
+  local installed=0
+  for binary in "${binaries[@]}"; do
+    package="${packages[${index}]}"
+    if command -v "${binary}" >/dev/null ; then 
+      quack "Command $(command -v "${binary}") is already present on this system."
+    else
+      shdoc::setup::install-binary-with-brew "${binary}" "${package}"
+      command -v "${binary}" >/dev/null && installed=$((installed + 1))
+    fi
+
+    index=$((index + 1))
+  done
+  quack "Total of ${installed} brew packages were installed."
+}
+
+function shdoc::setup::install-brew() {
+  quack "Checking if HomeBrew is installed..."
+  command -v brew >/dev/null && return
+  quack "Not found, attempting to install Homebrew..."
+  set -e
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  hash -r
+  command -v brew>/dev/null && quack "Homebrew was installed, continuing..."
+}
+
+function shdoc::setup::install() {
+  quack "Checking for dependencies on your Mac, OS-X v$(sw_vers -productVersion)"
+  shdoc::setup::install-brew
+  shdoc::setup::install-shdoc-dependencies
+}
+

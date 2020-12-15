@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# vim: ft=bash
+#
+# © 2020 github.com/kigster
+# Contributed by Konstantin Gredeskoul, under the MIT License
+
+function shdoc::setup::install() {
+  set -ex
+  trap 'set +x' EXIT
+  quack "Installing gawk and coreutils..."
+  sudo apt-get install gawk
+  sudo apt-get install coreutils
+  set +x
+}
