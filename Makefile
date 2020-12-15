@@ -1,4 +1,4 @@
-# vim: ft=make
+bash -c 'source vendor/github.com/reconquest/import.bash/import.bash && import:use "$*"'# vim: ft=make
 # vim: st=8
 
 .PHONY: 	help examples deps test
@@ -11,7 +11,7 @@ help:		## Prints help message auto-generated from the comments.
 
 
 deps:	 	# Install pre-requisites on OSX and download dependent git submodule
-		@bash bin/setup
+		@./bin/setup
 		@git submodule update --recursive --init
 
 
@@ -21,7 +21,6 @@ examples: 	deps ## Generate documentation for scripts in examples folder
 
 test: 		deps ## Run tests
 		@bash -c 'source vendor/github.com/reconquest/import.bash/import.bash && import:use "$*"'
-		@./*/run_tests*
 
 
 install: 	deps ## Install shdoc into /usr/local/bin

@@ -4,11 +4,10 @@
 # © 2020 github.com/kigster
 # Contributed by Konstantin Gredeskoul, under the MIT License
 
-function shdoc::setup::install() {
-  set -ex
-  trap 'set +x' EXIT
-  quack "Installing gawk and coreutils..."
+function shdoc:setup:install() {
+  set -e
+  quack "Installing gawk..."
   sudo apt-get install gawk
+  quack "Installing coreutils..."
   sudo apt-get install coreutils
-  set +x
 }

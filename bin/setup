@@ -18,35 +18,36 @@ export txtcyn='\e[0;36m' # Cyan
 export txtwht='\e[0;37m' # White
 export clr='\e[0m'       # Text Reset
 
-export osnameS
-osname="$(uname -s | tr '[:upper:]' '[:lower:]')"
+# shellcheck disable=SC2155
+export osname="$(uname -s | tr '[:upper:]' '[:lower:]')"
 
 export okay="${clr}${txtgrn}[ ✔ ] ${txtblu}"
 export fail="${clr}${txtred}[ ⨯ ] ${txtylw}"
 
 function smack() {
-  printf -- "${fail}${txtred}%s${clr}\n" "$*"
+  printf -- "${fail}${txtred}$*%s${clr}\n" ""
 }
 
 function quack() {
-  printf -- "${okay}${txtblu}%s${clr}\n" "$*"
+  printf -- "${okay}${txtblu}$*%s${clr}\n" ""
 }
 
 function br() {
   echo
 }
 
-function shdoc::setup::main() {
+function shdoc:setup:main() {
   local script="./bin/setup-${osname}"
-  if [[ -x "${script}" ]]; then
+  if [[ -f "${script}" ]]; then
     quack "Found setup script for ${osname} OS, running it."
     # shellcheck disable=SC1090
     source "${script}"
-    shdoc::setup::install
+    shdoc:setup:install
   else
     smack "Unfortunately your OS is not supported by the setup script."
+    smack "Was looking for script ${txtylw}${script}${txtred} in $(pwd)."
     exit 1
   fi
 }
 
-shdoc::setup::main "$@"
+shdoc:setup:main "$@"

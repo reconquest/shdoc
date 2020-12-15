@@ -12,71 +12,94 @@ declare -a binaries
 declare -a packages
 
 # What needs to be there
-export binaries=(gawk gsed greadlink)
+readonly binaries=(gawk gsed greadlink)
 
 # Brew pakage names containing each binary
-export packages=(gawk gnu-sed coreutils)
+readonly packages=(gawk gnu-sed coreutils)
 
 # @description Creates a symlink from /usr/local/bin/readlink to /usr/local/bin/greadlink
-function shdoc::setup::post-install-for::greadlink() {
+function shdoc:setup:install:after:greadlink() {
   local gnu_binary="/usr/local/bin/greadlink"
   local regular_binary="/usr/local/bin/readlink"
 
   [[ -x ${gnu_binary} ]] || {
-    smack "Expected to find ${gnu_binary}, but didn't."
+    smack "Expected to find an installed binary: ${bldylw}${gnu_binary}"
     exit 1
   }
 
+  quack "Creating a symlink to ${txtylw}${gnu_binary}${txtblu} from ${txtpur}${regular_binary}..."
+
+  [[ -f ${regular_binary} ]] && {
+    # if it's a symlink, remove it
+    if [[ -L ${regular_binary} ]] ; then 
+      rm -f ${regular_binary}
+    else
+      mv ${regular_binary} ${regular_binary}.bak."$(date '+%x.%X' | sed 's#/#-#g')"
+    fi
+  }
+
+  # Symlink greadlink 
   local command="ln -nfs \"${gnu_binary}\" \"${regular_binary}\""
   eval "${command}" || eval "sudo ${command}"
+
+  # And make sure /usr/local/bin is earlier in the PATH than the other location
+  local bin_path="$(dirname ${gnu_binary})"
+  quack "Updating PATH to have ${txtylw}${bin_path} in front..."
+  export PATH=":${PATH}"
 }
 
 # @description Installs the given binary via a provided Brew Package.
-function shdoc::setup::install-binary-with-brew() {
+function shdoc:setup:install-binary-with-brew() {
   local binary="${1}"
   local package="${2}"
 
   command -v "${binary}" >/dev/null && return 0
 
-  quack -n "Installing executable ${binary} from the package ${package}... "
+  quack "Installing ${bldylw}${binary}${txtblu} from ${txtpur}${package}${txtblu} package."
   set -e
   brew install "${package}" 1>/dev/null 2>&1 
   set +e
-  quack -n "re-creating symlinks... "
-  brew unlink "${package}" && brew link "${package}"
-  quack " done."
+  quack "Re-creating brew symlinks..."
+  (brew unlink "${package}" && brew link "${package}") 1>/dev/null 2>&1
 }
 
-function shdoc::setup::install-shdoc-dependencies() {
+function shdoc:setup:install-deps() {
   local index=0
   local installed=0
+  
   for binary in "${binaries[@]}"; do
     package="${packages[${index}]}"
     if command -v "${binary}" >/dev/null ; then 
       quack "Command $(command -v "${binary}") is already present on this system."
     else
-      shdoc::setup::install-binary-with-brew "${binary}" "${package}"
+      shdoc:setup:install-binary-with-brew "${binary}" "${package}"
       command -v "${binary}" >/dev/null && installed=$((installed + 1))
     fi
 
+    # If post-install function is defined for this binary, then run it
+    # whether or not we installed it or it was already there.
+    local post_install="shdoc:setup:install:after:${binary}"
+    if [[ -n $(type "${post_install}" 2>/dev/null) ]]; then
+      ${post_install}
+    fi
     index=$((index + 1))
   done
   quack "Total of ${installed} brew packages were installed."
 }
 
-function shdoc::setup::install-brew() {
+function shdoc:setup:install-brew-itself() {
   quack "Checking if HomeBrew is installed..."
   command -v brew >/dev/null && return
-  quack "Not found, attempting to install Homebrew..."
+  quack "Brew was not found, install it..."
   set -e
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   hash -r
   command -v brew>/dev/null && quack "Homebrew was installed, continuing..."
 }
 
-function shdoc::setup::install() {
-  quack "Checking for dependencies on your Mac, OS-X v$(sw_vers -productVersion)"
-  shdoc::setup::install-brew
-  shdoc::setup::install-shdoc-dependencies
+function shdoc:setup:install() {
+  quack "Checking for dependencies on your Mac, ${txtcyn}OS-X v$(sw_vers -productVersion)"
+  shdoc:setup:install-brew-itself
+  shdoc:setup:install-deps
 }
 

@@ -2,3 +2,4 @@
 .cover
 /log
 .vscode
+**/.DS_Store
