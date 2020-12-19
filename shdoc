@@ -238,6 +238,9 @@ function render_docblock(func_name, description, docblock) {
         push(lines, render("h4", "See also") "\n")
         for (i in docblock["see"]) {
             item = render("li", render_toc_link(docblock["see"][i]))
+            if (i == length(docblock["see"])) {
+                item = item "\n"
+            }
             push(lines, item)
         }
     }
