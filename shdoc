@@ -1,6 +1,6 @@
-#!/usr/bin/env gawk -f
+##!/bin/sh
 # vim: ft=awk ts=4 sw=4
-
+true + /; exec -a "$0" gawk -f "$0" -- "$@"; / {}
 BEGIN {
     if (! style) {
         style = "github"
