@@ -62,7 +62,7 @@ function render_toc_link(title) {
     if (style == "github") {
       # https://github.com/jch/html-pipeline/blob/master/lib/html/pipeline/toc_filter.rb#L44-L45
       url = tolower(url)
-      gsub(/[^[:alnum:] -]/, "", url)
+      gsub(/[^[:alnum:] _-]/, "", url)
       gsub(/ /, "-", url)
     }
 
