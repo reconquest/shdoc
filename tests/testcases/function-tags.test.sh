@@ -17,6 +17,7 @@ tests:put input <<EOF
 # @exitcode >0 On failure
 # @exitcode 5  On some error.
 #
+# @stdin Path to something.
 # @stdout Path to something.
 #
 # @see some:other:func()
@@ -52,6 +53,10 @@ _Function has no arguments._
 * **0**:  If successfull.
 * **>0**: On failure
 * **5**:  On some error.
+
+#### Input on stdin
+
+* Path to something.
 
 #### Output on stdout
 
