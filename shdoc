@@ -223,6 +223,17 @@ function render_docblock(func_name, description, docblock) {
         }
     }
 
+    if ("stdin" in docblock) {
+        push(lines, render("h4", "Input on stdin") "\n")
+        for (i in docblock["stdin"]) {
+            item = render("li", docblock["stdin"][i])
+            if (i == length(docblock["stdin"])) {
+                item = item "\n"
+            }
+            push(lines, item)
+        }
+    }
+
     if ("stdout" in docblock) {
         push(lines, render("h4", "Output on stdout") "\n")
         for (i in docblock["stdout"]) {
@@ -368,6 +379,16 @@ in_example {
     sub(/[[:space:]]*# @see /, "")
 
     docblock_push("see", $0)
+
+    next
+}
+
+/^[[:space:]]*# @stdin/ {
+    debug("→ @stdin")
+
+    sub(/^[[:space:]]*# @stdin /, "")
+
+    docblock_push("stdin", $0)
 
     next
 }
