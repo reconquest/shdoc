@@ -1,7 +1,6 @@
-#!/usr/bin/env awk -f
-# NOTE: on OS-X you must install gawk with `brew install gawk`
-# vim: ft=awk
-
+##!/bin/sh
+# vim: ft=awk ts=4 sw=4
+true + /; exec -a "$0" gawk -f "$0" -- "$@"; / {}
 BEGIN {
     if (! style) {
         style = "github"
@@ -64,7 +63,7 @@ function render_toc_link(title) {
     if (style == "github") {
       # https://github.com/jch/html-pipeline/blob/master/lib/html/pipeline/toc_filter.rb#L44-L45
       url = tolower(url)
-      gsub(/[^[:alnum:] -]/, "", url)
+      gsub(/[^[:alnum:] _-]/, "", url)
       gsub(/ /, "-", url)
     }
 
@@ -225,6 +224,17 @@ function render_docblock(func_name, description, docblock) {
         }
     }
 
+    if ("stdin" in docblock) {
+        push(lines, render("h4", "Input on stdin") "\n")
+        for (i in docblock["stdin"]) {
+            item = render("li", docblock["stdin"][i])
+            if (i == length(docblock["stdin"])) {
+                item = item "\n"
+            }
+            push(lines, item)
+        }
+    }
+
     if ("stdout" in docblock) {
         push(lines, render("h4", "Output on stdout") "\n")
         for (i in docblock["stdout"]) {
@@ -240,6 +250,9 @@ function render_docblock(func_name, description, docblock) {
         push(lines, render("h4", "See also") "\n")
         for (i in docblock["see"]) {
             item = render("li", render_toc_link(docblock["see"][i]))
+            if (i == length(docblock["see"])) {
+                item = item "\n"
+            }
             push(lines, item)
         }
     }
@@ -371,6 +384,16 @@ in_example {
     next
 }
 
+/^[[:space:]]*# @stdin/ {
+    debug("→ @stdin")
+
+    sub(/^[[:space:]]*# @stdin /, "")
+
+    docblock_push("stdin", $0)
+
+    next
+}
+
 /^[[:space:]]*# @stdout/ {
     debug("→ @stdout")
 
@@ -381,7 +404,7 @@ in_example {
     next
 }
 
-/^[ \t]*(function([ \t])+)?([a-zA-Z0-9\._:-]+)([ \t]*)(\(([ \t]*)\))?[ \t]*\{/ \
+/^[ \t]*(function([ \t])+)?([a-zA-Z0-9_:-]+)([ \t]*)(\(([ \t]*)\))?[ \t]*\{/ \
     && (length(docblock) != 0 || description != "") && !in_example {
     debug("→ function")
     if (is_internal) {
@@ -392,7 +415,7 @@ in_example {
 
         is_internal = 0
         func_name = gensub(\
-            /^[ \t]*(function([ \t])+)?([a-zA-Z0-9\._:-]+)[ \t]*\(.*/, \
+            /^[ \t]*(function([ \t])+)?([a-zA-Z0-9_:-]+)[ \t]*\(.*/, \
             "\\3()", \
             "g" \
         )

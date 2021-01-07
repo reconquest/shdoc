@@ -1,3 +1,5 @@
 .last-testcase
 .cover
 /log
+.DS_Store
+.vscode
