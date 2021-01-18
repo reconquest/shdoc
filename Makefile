@@ -1,4 +1,5 @@
-.PHONY: examples
+all: dist
+
 examples:
 	$(MAKE) -C examples/ -B
 
@@ -8,6 +9,16 @@ vendor/%/Makefile:
 
 include vendor/github.com/reconquest/test-runner.bash/Makefile
 
-DST = /usr/local/bin/
-install:
-	cp shdoc $(DST)
+build:
+	mkdir build
+
+dist: build
+	cd build && cmake .. && cpack
+
+install: dist
+	sudo dpkg -i build/*.deb
+
+clean:
+	rm -rf build
+
+.PHONY: all clean dist install examples
