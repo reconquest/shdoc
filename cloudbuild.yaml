@@ -1,0 +1,46 @@
+# In this directory, run the following command to build this builder.
+# $ gcloud builds submit . --config=cloudbuild.yaml
+
+steps:
+  - id: 'Inject GitHub credentials'
+    name: gcr.io/cloud-builders/gcloud
+    entrypoint: 'bash'
+    args: [ '-c', 'gcloud secrets versions access latest --secret=miso-deploy-ssh-key > /root/.ssh/id_github' ]
+    volumes:
+      - name: 'ssh'
+        path: /root/.ssh
+
+  - id: 'Set up git repository'
+    name: gcr.io/cloud-builders/git
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        chmod 600 /root/.ssh/id_github
+        cat <<EOF >/root/.ssh/config
+        Hostname github.com
+        IdentityFile /root/.ssh/id_github
+        EOF
+        ssh-keyscan -t rsa github.com > /root/.ssh/known_hosts
+        git remote set-url origin git@github.com:MisoRobotics/$REPO_NAME.git
+        git fetch origin $_BASE_BRANCH:$_BASE_BRANCH
+    volumes:
+      - name: 'ssh'
+        path: /root/.ssh
+
+  - id: 'Run gitlint'
+    name: gcr.io/software-builds/gitlint
+    args:
+      - '--commits'
+      - '$_BASE_BRANCH..$COMMIT_SHA'
+      - '-c'
+      - 'general.ignore-fixup-commits=false'
+      - '-c'
+      - 'general.ignore-squash-commits=false'
+      - '-c'
+      - 'title-must-not-contain-word.words=WIP,FIXUP,SQUASH'
+
+  - id: 'Build distribution.'
+    name: gcr.io/software-builds/cloud-builders/cmake
+    entrypoint: 'make'
+    agrs: ['dist']
