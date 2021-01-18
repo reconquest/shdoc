@@ -1,3 +1,4 @@
 .last-testcase
 .cover
 /log
+build/
