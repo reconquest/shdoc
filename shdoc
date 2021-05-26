@@ -1,4 +1,4 @@
-#!/usr/bin/env gawk -f
+#!/usr/bin/gawk -f
 # vim: ft=awk ts=4 sw=4
 
 BEGIN {
