@@ -13,6 +13,8 @@ tests:put input <<EOF
 #
 # @noargs
 #
+# @set A string Variable was set
+#
 # @exitcode 0  If successfull.
 # @exitcode >0 On failure
 # @exitcode 5  On some error.
@@ -47,6 +49,10 @@ echo 123
 * **...** (any): Rest of arguments.
 
 _Function has no arguments._
+
+#### Variables set
+
+* **A** (string): Variable was set
 
 #### Exit codes
 
