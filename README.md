@@ -194,6 +194,20 @@ say-hello-world() {
 }
 ```
 
+### `@set`
+
+A description of a global variable that is set while calling the function.
+Can be specified multiple times to describe any number of variables
+
+**Example**
+# @description Sets hello to the variable REPLY
+# @set REPLY string Greeting message.
+```bash
+set-hello() {
+    ...
+}
+```
+
 ### `@exitcode`
 
 Describes an expected exitcode of the function.
