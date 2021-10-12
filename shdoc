@@ -29,6 +29,9 @@ BEGIN {
     styles["github", "arg@", "from"] = "^\\$@ (\\S+)"
     styles["github", "arg@", "to"] = "**...** (\\1):"
 
+    styles["github", "set", "from"] = "^(\\S+) (\\S+)"
+    styles["github", "set", "to"] = "**\\1** (\\2):"
+
     styles["github", "li", "from"] = ".*"
     styles["github", "li", "to"] = "* &"
 
@@ -213,6 +216,19 @@ function render_docblock(func_name, description, docblock) {
         push(lines, render("i", "Function has no arguments.") "\n")
     }
 
+    if ("set" in docblock) {
+        push(lines, render("h4", "Variables set") "\n")
+        for (i in docblock["set"]) {
+            item = docblock["set"][i]
+            item = render("set", item)
+            item = render("li", item)
+            if (i == length(docblock["set"])) {
+                item = item "\n"
+            }
+            push(lines, item)
+        }
+    }
+
     if ("exitcode" in docblock) {
         push(lines, render("h4", "Exit codes") "\n")
         for (i in docblock["exitcode"]) {
@@ -362,6 +378,15 @@ in_example {
 /^[[:space:]]*# @noargs/ {
     debug("→ @noargs")
     docblock["noargs"] = 1
+
+    next
+}
+
+/^[[:space:]]*# @set/ {
+    debug("→ @set")
+    sub(/^[[:space:]]*# @set /, "")
+
+    docblock_push("set", $0)
 
     next
 }
