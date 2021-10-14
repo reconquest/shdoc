@@ -200,9 +200,9 @@ A description of a global variable that is set while calling the function.
 Can be specified multiple times to describe any number of variables
 
 **Example**
+```bash
 # @description Sets hello to the variable REPLY
 # @set REPLY string Greeting message.
-```bash
 set-hello() {
     ...
 }
