@@ -441,7 +441,7 @@ in_example {
         is_internal = 0
         func_name = gensub(\
             /^[ \t]*(function([ \t])+)?([a-zA-Z0-9_\-:-\\.]+)[ \t]*\(.*/, \
-            "\\3()", \
+            "\\3", \
             "g" \
         )
 
