@@ -10,4 +10,8 @@ include vendor/github.com/reconquest/test-runner.bash/Makefile
 
 DST = /usr/local/bin/
 install:
-	cp shdoc $(DST)
+	case $$OSTYPE in \
+	darwin*) sed 's/\/usr\/bin\/gawk/\/usr\/bin\/env gawk/' shdoc > $(DST)/shdoc;; \
+	*) cp shdoc $(DST);; \
+	esac
+	chmod +x $(DST)shdoc
