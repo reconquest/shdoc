@@ -30,9 +30,9 @@ EOF
 tests:put expected <<EOF
 ## Index
 
-* [tests:value()](#testsvalue)
+* [tests:value](#testsvalue)
 
-### tests:value()
+### tests:value
 
 Same, as \`tests:eval\`, but writes stdout into given variable and
 return stderr as expected.

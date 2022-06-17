@@ -40,25 +40,25 @@ c
 
 ## Index
 
-* [a()](#a)
-* [b()](#b)
-* [c()](#c)
+* [a](#a)
+* [b](#b)
+* [c](#c)
 
-### a()
+### a
 
 func a
 line a 2
 
 _Function has no arguments._
 
-### b()
+### b
 
 func b
 ab
 
 _Function has no arguments._
 
-### c()
+### c
 
 func c
 

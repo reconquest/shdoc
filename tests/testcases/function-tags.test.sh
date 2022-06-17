@@ -29,9 +29,9 @@ EOF
 tests:put expected <<EOF
 ## Index
 
-* [some:first:func()](#somefirstfunc)
+* [some:first:func](#somefirstfunc)
 
-### some:first:func()
+### some:first:func
 
 Multiline description goes here and
 there

@@ -43,14 +43,14 @@ EOF
 tests:put expected <<EOF
 ## Index
 
-* [fn()](#fn)
-* [spaces()](#spaces)
-* [tab1()](#tab1)
-* [tab2()](#tab2)
-* [tab3()](#tab3)
-* [tab4()](#tab4)
+* [fn](#fn)
+* [spaces](#spaces)
+* [tab1](#tab1)
+* [tab2](#tab2)
+* [tab3](#tab3)
+* [tab4](#tab4)
 
-### fn()
+### fn
 
 #### Arguments
 
@@ -60,7 +60,7 @@ tests:put expected <<EOF
 
 * result of fn
 
-### spaces()
+### spaces
 
 #### Arguments
 
@@ -70,7 +70,7 @@ tests:put expected <<EOF
 
 * result of spaces
 
-### tab1()
+### tab1
 
 #### Arguments
 
@@ -80,7 +80,7 @@ tests:put expected <<EOF
 
 * result of tab1
 
-### tab2()
+### tab2
 
 #### Arguments
 
@@ -90,7 +90,7 @@ tests:put expected <<EOF
 
 * result of tab2
 
-### tab3()
+### tab3
 
 #### Arguments
 
@@ -100,7 +100,7 @@ tests:put expected <<EOF
 
 * result of tab3
 
-### tab4()
+### tab4
 
 #### Arguments
 

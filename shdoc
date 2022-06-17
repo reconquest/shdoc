@@ -429,7 +429,7 @@ in_example {
     next
 }
 
-/^[ \t]*(function([ \t])+)?([a-zA-Z0-9_:-\\.]+)([ \t]*)(\(([ \t]*)\))?[ \t]*\{/ \
+/^[ \t]*(function([ \t])+)?([a-zA-Z0-9_\-:-\\.]+)([ \t]*)(\(([ \t]*)\))?[ \t]*\{/ \
     && (length(docblock) != 0 || description != "") && !in_example {
     debug("→ function")
     if (is_internal) {
@@ -440,8 +440,8 @@ in_example {
 
         is_internal = 0
         func_name = gensub(\
-            /^[ \t]*(function([ \t])+)?([a-zA-Z0-9_:-\\.]+)[ \t]*\(.*/, \
-            "\\3()", \
+            /^[ \t]*(function([ \t])+)?([a-zA-Z0-9_\-:-\\.]+)[ \t]*\(.*/, \
+            "\\3", \
             "g" \
         )
 

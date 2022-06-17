@@ -79,9 +79,9 @@ The project solves lots of problems:
 
 ## Index
 
-* [say-hello()](#say-hello)
+* [say-hello](#say-hello)
 
-### say-hello()
+### say-hello
 
 My super function.
 Not thread-safe.
