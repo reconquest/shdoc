@@ -124,6 +124,10 @@ file.
 # @name MyLibrary
 ```
 
+### `@file`
+
+Identical to [@name](#name).
+
 ### `@brief`
 
 A brief line about the project. Can be specified once in the beginning of the file.<br>
@@ -218,6 +222,19 @@ Can be specified multiple times to describe all possible exitcodes and their con
 # @description Says 'hello world'.
 # @exitcode 0 If successful.
 # @exitcode 1 If world is gone.
+say-hello-world() {
+    ...
+}
+```
+
+### `@stdin`
+
+The expected input to the function call from `stdin` (usually the terminal or command line)
+
+**Example**
+```bash
+# @description Asks name.
+# @stdin The users name from the terminal/command line.
 say-hello-world() {
     ...
 }
