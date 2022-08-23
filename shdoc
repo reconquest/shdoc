@@ -192,7 +192,7 @@ function render_docblock(func_name, description, docblock) {
     debug("→ → description: [" description "]")
 
     if (section != "") {
-      lines[0]=render("h2", section)
+      lines[0] = render("h2", section)
       if (section_description != "") {
         push(lines, section_description)
       }
@@ -201,7 +201,7 @@ function render_docblock(func_name, description, docblock) {
       push(lines, render("h3", func_name))
       push(lines, "")
     } else {
-      lines[0]=render("h3", func_name)
+      lines[0] = render("h3", func_name)
     }
     
     if (description != "") {
@@ -364,7 +364,7 @@ in_description {
 /^[[:space:]]*# @section/ {
   debug("→ @section")
   sub(/^[[:space:]]*# @section /, "")
-  section=$0
+  section = $0
 
   next
 }
