@@ -140,8 +140,9 @@ A brief line about the project. Can be specified once in the beginning of the fi
 
 ### `@description`
 
-A multiline description of the project/function.
-* Can be specified once for the whole file in the begibeginning of the file.
+A multiline description of the project/section/function.
+* Can be specified once for the whole file in the beginning of the file.
+* Can be specified once for a section of the file. See [@section](#section).
 * Can be specified once for on top of a function definition.
 
 **Example**
@@ -155,6 +156,16 @@ A multiline description of the project/function.
 function super() {
     ...
 }
+```
+
+### `@section`
+
+The name of a section of the file. Can be used to group functions.
+
+**Example**
+```bash
+# @section My utilities functions
+# @description The following functions can be used to solve problems.
 ```
 
 ### `@example`
