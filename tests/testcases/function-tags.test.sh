@@ -21,6 +21,7 @@ tests:put input <<EOF
 #
 # @stdin Path to something.
 # @stdout Path to something.
+# @stderr Stderr description.
 #
 # @see some:other:func()
 some:first:func() {
@@ -67,6 +68,10 @@ _Function has no arguments._
 #### Output on stdout
 
 * Path to something.
+
+#### Output on stderr
+
+* Stderr description.
 
 #### See also
 
