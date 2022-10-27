@@ -12,9 +12,9 @@ The project solves lots of problems:
 
 ## Index
 
-* [say-hello()](#say-hello)
+* [say-hello](#say-hello)
 
-### say-hello()
+### say-hello
 
 My super function.
 Not thread-safe.
@@ -34,6 +34,15 @@ echo "test: $(say-hello World)"
 * **0**: If successful.
 * **1**: If an empty string passed.
 
+#### Output on stdout
+
+* Output 'Hello $1'.
+
+#### Output on stderr
+
+* Output 'Oups !' on error.
+
 #### See also
 
 * [validate()](#validate)
+
