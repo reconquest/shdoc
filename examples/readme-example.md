@@ -42,10 +42,6 @@ echo "test: $(say-hello World)"
 
 * Output 'Oups !' on error.
 
-#### Output on stderr
-
-* Output 'Oups !' on error.
-
 #### See also
 
 * [validate()](#validate)
