@@ -266,11 +266,12 @@ say-hello-world() {
 
 ### `@see`
 
-Create a link on the given function in the See Also section.
+Create a link on the given function in the "See Also" section.
 
 **Example**
 ```bash
 # @see say-hello
+# @see text with [markdown link](./other-file#other-function)
 say-hello-world() {
     ...
 }

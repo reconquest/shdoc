@@ -23,6 +23,7 @@ tests:put input <<EOF
 # @stdout Path to something.
 #
 # @see some:other:func()
+# @see Shell documation generator [shdoc](https://github.com/reconquest/shdoc).
 some:first:func() {
 EOF
 
@@ -71,6 +72,7 @@ _Function has no arguments._
 #### See also
 
 * [some:other:func()](#someotherfunc)
+* Shell documation generator [shdoc](https://github.com/reconquest/shdoc).
 EOF
 
 assert

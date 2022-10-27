@@ -62,6 +62,10 @@ function render(type, text) {
 }
 
 function render_toc_link(title) {
+    # If title contains a markdown link, return as is.
+    if (title ~ /\[[^\]]*\]([^)]*)/) {
+        return title
+    }
     url = title
     if (style == "github") {
       # https://github.com/jch/html-pipeline/blob/master/lib/html/pipeline/toc_filter.rb#L44-L45

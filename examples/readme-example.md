@@ -12,9 +12,9 @@ The project solves lots of problems:
 
 ## Index
 
-* [say-hello()](#say-hello)
+* [say-hello](#say-hello)
 
-### say-hello()
+### say-hello
 
 My super function.
 Not thread-safe.
@@ -37,3 +37,5 @@ echo "test: $(say-hello World)"
 #### See also
 
 * [validate()](#validate)
+* Documentation generated using [shdoc](https://github.com/reconquest/shdoc).
+
