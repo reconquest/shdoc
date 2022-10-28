@@ -188,6 +188,43 @@ function docblock_push(key, value) {
     docblock[key][length(docblock[key])+1] = value
 }
 
+
+# @description Append a text to the last item of a docblock.
+#
+# @param docblock_name  Name of the modified docblock.
+# @param text           Appended text.
+#
+# @set docblock[docblock_name] docblock with text appended to last item.
+function docblock_append(docblock_name, text) {
+    # Detect last docblock item index.
+    last_item_index = length(docblock[docblock_name])
+    # Append text to last docblock item.
+    docblock[docblock_name][last_item_index] = docblock[docblock_name][last_item_index] text
+}
+
+# @description Render a docblock as an unordered list.
+#
+# @param dockblock      Dockblock array.
+# @param dockblock_name Name of the rendered docblock.
+# @param title          Title of the rendered section.
+#
+# @stdout A unordered list of the dockblock entries.
+function render_docblock_list(docblock, docblock_name, title) {
+    push(lines, render("h4", title) "\n")
+    # Initialize list item.
+    item = ""
+    # For each dockblock line.
+    for (i in docblock[docblock_name]) {
+        # Ident additionnal lines to add them to the markdown list item.
+        gsub(/\n/, "\n  ", docblock[docblock_name][i])
+        item = render("li", docblock[docblock_name][i])
+        push(lines, item)
+    }
+
+    # Add empty line to signal end of list in markdown.
+    push(lines, "")
+}
+
 function render_docblock(func_name, description, docblock) {
     debug("→ render_docblock")
     debug("→ → func_name: [" func_name "]")
@@ -261,51 +298,15 @@ function render_docblock(func_name, description, docblock) {
     }
 
     if ("stdin" in docblock) {
-        push(lines, render("h4", "Input on stdin") "\n")
-        for (i in docblock["stdin"]) {
-            item = render("li", docblock["stdin"][i])
-            if (i == length(docblock["stdin"])) {
-                item = item "\n"
-            }
-            push(lines, item)
-        }
+        render_docblock_list(docblock, "stdin", "Input on stdin")
     }
 
     if ("stdout" in docblock) {
-        push(lines, render("h4", "Output on stdout") "\n")
-        for (i in docblock["stdout"]) {
-            item = render("li", docblock["stdout"][i])
-            if (i == length(docblock["stdout"])) {
-                item = item "\n"
-            }
-            push(lines, item)
-        }
+        render_docblock_list(docblock, "stdout", "Output on stdout")
     }
 
     if ("stderr" in docblock) {
-        push(lines, render("h4", "Output on stderr") "\n")
-        # Initialize list item.
-        item = ""
-        # For each stderr line.
-        for (i in docblock["stderr"]) {
-            # Test if stderr line is next line of multiple line stderr.
-            if (docblock["stderr"][i] ~ /^  /) {
-                # Add line to current item.
-                item = item "\n" docblock["stderr"][i]
-            } else {
-                # Line is not indented, new list item.
-                # If previous list item is not empty, add it to the list.
-                if (item) push(lines, render("li", item))
-
-                # Initialize a new list item.
-                item = docblock["stderr"][i]
-            }
-        }
-        # Add the last list item to output.
-        if (item) push(lines, render("li", item))
-
-        # Add empty line to signal end of list in markdown.
-        push(lines, "")
+        render_docblock_list(docblock, "stderr", "Output on stderr")
     }
 
     if ("see" in docblock) {
@@ -463,64 +464,50 @@ in_example {
     next
 }
 
-/^[[:space:]]*# @stdin/ {
-    debug("→ @stdin")
-
-    sub(/^[[:space:]]*# @stdin /, "")
-
-    docblock_push("stdin", $0)
-
-    next
-}
-
-/^[[:space:]]*# @stdout/ {
-    debug("→ @stdout")
-
-    sub(/^[[:space:]]*# @stdout /, "")
-
-    docblock_push("stdout", $0)
-
-    next
-}
-
-# Select lines starting with '# @stderr '.
-/^([[:space:]]*#[[:space:]]+)@stderr[[:space:]]/ {
-    debug("→ @stderr")
-
-    # Signal the start of a stderr section.
-    stderr_section_flag = 1
-    stderr_section_identation_regex = "^" $1 "[[:space:]]+[^[:space:]].*$"
-
-    # Remove indentation and '# @stderr ' string.
-    sub(/^[[:space:]]*#[[:space:]]+@stderr[[:space:]]+/, "")
-
-    # Push @stderr message to corresponding docblock.
-    docblock_push("stderr", $0)
-
-    # Process next line.
-    next
-}
-
-# Previous line add the @stderr tag.
+# Previous line added a new docblock item.
 # Check if current line has the needed indentation
-# for it to be a multiple line @stderr message.
-stderr_section_flag {
-    # Select lines with the same indentation as the stderr section.
-    if ($0 ~ stderr_section_identation_regex) {
+# for it to be a multiple lines docblock item.
+multiple_line_docblock_name {
+    # Check if current line indentation does match the previous line docblock item.
+    if ($0 ~ multiple_line_identation_regex ) {
+        debug("→ @" multiple_line_docblock_name)
+        
+        # Current line has the same indentation as the stderr section.
+    
+        # Remove indentation and trailing spaces.
+        sub(/^[[:space:]]*#[[:space:]]+/, "")
+        sub(/[[:space:]]+$/, "")
 
-        # Remove indentation, and add double space indentation
-        # for output to be in the same list point.
-        sub(/^[[:space:]]*#[[:space:]]+/, "  ")
+        # Push matched message to corresponding docblock.
+        docblock_append(multiple_line_docblock_name, "\n" $0)
 
-        # Push @stderr message to corresponding docblock.
-        docblock_push("stderr", $0)
-
-        # Process next line.
+        # Stop processing current line, and process next line.
         next
     } else {
-        # End stderr section.
-        stderr_section_flag = 0
+        # End previous line docblock item.
+        multiple_line_docblock_name = ""
     }
+}
+
+# Process similarly @stdin, @stdout and @stderr entries.
+# Allow for multiple lines entries.
+match($0, /^([[:blank:]]*#[[:blank:]]+)@(stdin|stdout|stderr)[[:blank:]]+(.*[^[:blank:]])[[:blank:]]*$/, contents) {
+    # Fetch matched values.
+    indentation = contents[1]
+    docblock_name = contents[2]
+    text = contents[3]
+
+    debug("→ @" docblock_name)
+
+    # Push matched message to corresponding docblock.
+    docblock_push(docblock_name, text)
+
+    # Signal the start of a multiple line section.
+    multiple_line_docblock_name = docblock_name
+    multiple_line_identation_regex = "^" indentation "[[:blank:]]+[^[:blank:]].*$"
+
+    # Stop processing current line, and process next line.
+    next
 }
 
 /^[ \t]*(function([ \t])+)?([a-zA-Z0-9_\-:-\\.]+)([ \t]*)(\(([ \t]*)\))?[ \t]*\{/ \

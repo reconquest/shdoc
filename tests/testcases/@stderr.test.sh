@@ -32,12 +32,23 @@ tests:put input <<EOF
 # @stderr       Indented with spaces stderr message.
 # @stderr Multiple lines
 #   stderr message.
+# line outside of multiple lines stderr message (ignored).
+# @stderr Failed multiple lines
+    # std err message.
+    #   @stderr Idented multiple lines
+    #       stderr message
 # @stderr Stderr message with trailing spaces.      
 test-stderr() {
 }
 EOF
 
 tests:put expected <<EOF
+# shdoc @stderr tests
+
+Test @stderr functionnality.
+
+## Overview
+
 Tests for shdoc processing of @stderr keyword.
 ## Index
 
@@ -55,9 +66,13 @@ test-stderr dummy function.
 
 * Standard stderr message.
 * Stderr message with [markdown link](https://github.com/reconquest/shdoc).
-*       Indented with spaces stderr message.
+* Indented with spaces stderr message.
 * Multiple lines
-* Stderr message with trailing spaces.    
+  stderr message.
+* Failed multiple lines
+* Idented multiple lines
+  stderr message
+* Stderr message with trailing spaces.
 
 #### See also
 
