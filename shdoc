@@ -44,6 +44,8 @@ BEGIN {
     styles["github", "exitcode", "from"] = "([>!]?[0-9]{1,3}) (.*)"
     styles["github", "exitcode", "to"] = "**\\1**: \\2"
 
+    stderr_section_flag = 0
+
     debug_enable = ENVIRON["SHDOC_DEBUG"] == "1"
     debug_fd = ENVIRON["SHDOC_DEBUG_FD"]
     if (!debug_fd) {
@@ -282,13 +284,28 @@ function render_docblock(func_name, description, docblock) {
 
     if ("stderr" in docblock) {
         push(lines, render("h4", "Output on stderr") "\n")
+        # Initialize list item.
+        item = ""
+        # For each stderr line.
         for (i in docblock["stderr"]) {
-            item = render("li", docblock["stderr"][i])
-            if (i == length(docblock["stderr"])) {
-                item = item "\n"
+            # Test if stderr line is next line of multiple line stderr.
+            if (docblock["stderr"][i] ~ /^  /) {
+                # Add line to current item.
+                item = item "\n" docblock["stderr"][i]
+            } else {
+                # Line is not indented, new list item.
+                # If previous list item is not empty, add it to the list.
+                if (item) push(lines, render("li", item))
+
+                # Initialize a new list item.
+                item = docblock["stderr"][i]
             }
-            push(lines, item)
         }
+        # Add the last list item to output.
+        if (item) push(lines, render("li", item))
+
+        # Add empty line to signal end of list in markdown.
+        push(lines, "")
     }
 
     if ("see" in docblock) {
@@ -466,14 +483,44 @@ in_example {
     next
 }
 
-/^[[:space:]]*# @stderr/ {
+# Select lines starting with '# @stderr '.
+/^([[:space:]]*#[[:space:]]+)@stderr[[:space:]]/ {
     debug("→ @stderr")
 
-    sub(/^[[:space:]]*# @stderr /, "")
+    # Signal the start of a stderr section.
+    stderr_section_flag = 1
+    stderr_section_identation_regex = "^" $1 "[[:space:]]+[^[:space:]].*$"
 
+    # Remove indentation and '# @stderr ' string.
+    sub(/^[[:space:]]*#[[:space:]]+@stderr[[:space:]]+/, "")
+
+    # Push @stderr message to corresponding docblock.
     docblock_push("stderr", $0)
 
+    # Process next line.
     next
+}
+
+# Previous line add the @stderr tag.
+# Check if current line has the needed indentation
+# for it to be a multiple line @stderr message.
+stderr_section_flag {
+    # Select lines with the same indentation as the stderr section.
+    if ($0 ~ stderr_section_identation_regex) {
+
+        # Remove indentation, and add double space indentation
+        # for output to be in the same list point.
+        sub(/^[[:space:]]*#[[:space:]]+/, "  ")
+
+        # Push @stderr message to corresponding docblock.
+        docblock_push("stderr", $0)
+
+        # Process next line.
+        next
+    } else {
+        # End stderr section.
+        stderr_section_flag = 0
+    }
 }
 
 /^[ \t]*(function([ \t])+)?([a-zA-Z0-9_\-:-\\.]+)([ \t]*)(\(([ \t]*)\))?[ \t]*\{/ \
