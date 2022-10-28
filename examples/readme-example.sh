@@ -17,7 +17,9 @@
 # @arg $1 string A value to print
 #
 # @stdout Output 'Hello $1'.
+#   It hopes you say Hello back.
 # @stderr Output 'Oups !' on error.
+#   It did it again.
 #
 # @exitcode 0 If successful.
 # @exitcode 1 If an empty string passed.

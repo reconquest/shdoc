@@ -37,10 +37,12 @@ echo "test: $(say-hello World)"
 #### Output on stdout
 
 * Output 'Hello $1'.
+  It hopes you say Hello back.
 
 #### Output on stderr
 
 * Output 'Oups !' on error.
+  It did it again.
 
 #### See also
 
