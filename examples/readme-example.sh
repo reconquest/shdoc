@@ -25,6 +25,7 @@
 # @exitcode 1 If an empty string passed.
 #
 # @see validate()
+# @see Documentation generated using [shdoc](https://github.com/reconquest/shdoc).
 say-hello() {
     if [[ ! "$1" ]]; then
         echo "Oups !" >&2

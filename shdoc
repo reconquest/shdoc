@@ -84,16 +84,42 @@ function render(type, text) {
     )
 }
 
-function render_toc_link(title) {
-    url = title
+function render_toc_link(text) {
+    # URL processing
+    # @see Regexp sourced from https://stackoverflow.com/questions/3183444/check-for-valid-link-url
+
+    # If text start by '/', './' or '../', assume it is a relative link.
+    if (text ~ /^\.{0,2}\//) {
+        return "[" text "](" text ")"
+    }
+
+    # If text contains URLs, but not a markdown links, transform the URLs in markdown links.
+    # Assume a URL is in a markdown link if it follow '](' string.
+    if ("  " text " " ~ /[^\]]([^a-z(]|\()[a-z]+:\/\/[-[:alnum:]+&@#\/%?=~_|!:,.;]*[-[:alnum:]\+&@#\/%=~_|]/) {
+        # Add space at the end of text to allow for easy detection of URLs.
+        text = "  " text " "
+        # Enclose URLs in markdown links.
+        text = gensub(/([^\]]([^a-z(]|\())([a-z]+:\/\/[-[:alnum:]+&@#\/%?=~_|!:,.;]*[-[:alnum:]\+&@#\/%=~_|])/, "\\1[\\3](\\3)", "g", text)
+        # Trim spaces added to ease unenclosed URL regex creation.
+        gsub(/^[[:blank:]]*/, "", text)
+        gsub(/[[:blank:]]*$/, "", text)
+        return text
+    }
+
+    # If title contains a markdown link, return as is.
+    if (text ~ /\[[^\]]*\]([^)]*)/) {
+        return text
+    }
+
+    url = text
     if (style == "github") {
-      # https://github.com/jch/html-pipeline/blob/master/lib/html/pipeline/toc_filter.rb#L44-L45
+      # @see https://github.com/jch/html-pipeline/blob/master/lib/html/pipeline/toc_filter.rb#L44-L45
       url = tolower(url)
       gsub(/[^[:alnum:] _-]/, "", url)
       gsub(/ /, "-", url)
     }
 
-    return "[" title "](#" url ")"
+    return "[" text "](#" url ")"
 }
 
 function render_toc_item(title) {

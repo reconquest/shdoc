@@ -47,4 +47,4 @@ echo "test: $(say-hello World)"
 #### See also
 
 * [validate()](#validate)
-
+* Documentation generated using [shdoc](https://github.com/reconquest/shdoc).
