@@ -23,11 +23,11 @@ BEGIN {
 
     styles["github", "/code", "to"] = "```"
 
-    styles["github", "argN", "from"] = "^(\\$[0-9]) (\\S+)"
-    styles["github", "argN", "to"] = "**\\1** (\\2):"
+    styles["github", "argN", "from"] = "^(\\$[0-9]+)[[:blank:]]+(\\S+)[[:blank:]]+"
+    styles["github", "argN", "to"] = "**\\1** (\\2): "
 
-    styles["github", "arg@", "from"] = "^\\$@ (\\S+)"
-    styles["github", "arg@", "to"] = "**...** (\\1):"
+    styles["github", "arg@", "from"] = "^\\$@[[:blank:]]+(\\S+)[[:blank:]]+"
+    styles["github", "arg@", "to"] = "**...** (\\1): "
 
     styles["github", "set", "from"] = "^(\\S+) (\\S+)"
     styles["github", "set", "to"] = "**\\1** (\\2):"
@@ -52,6 +52,27 @@ BEGIN {
         debug_fd = 2
     }
     debug_file = "/dev/fd/" debug_fd
+}
+
+# @description Display the given error message with its line number on stderr.
+#              and exit with error.
+# @arg $message string A error message.
+# @exitcode 1
+function error(message) {
+    error_message_color="\033[1;31m"
+    color_clear="\033[1;0m"
+    printf("%sline %4s, error : %s%s\n",\
+        error_message_color, NR, message, color_clear) > "/dev/stderr"
+    exit 1
+}
+
+# @description Display the given warning message with its line number on stderr.
+# @arg $message string A warning message.
+function warn(message) {
+    warn_message_color="\033[1;34m"
+    color_clear="\033[1;0m"
+    printf("%sline %4s, warning : %s%s\n", \
+        warn_message_color, NR, message, color_clear) > "/dev/stderr"
 }
 
 function render(type, text) {
@@ -172,6 +193,14 @@ function join(arr) {
     return result
 }
 
+# @description Remove leading and trailing space from line(s) of text.
+# @arg text A text.
+# @return The trimmed text.
+function trim(text) {
+    gsub(/(^[[:blank:]]+|[[:blank:]]+$)/, "", text)
+    return text
+}
+
 function docblock_set(key, value) {
     docblock[key] = value
 }
@@ -257,16 +286,21 @@ function render_docblock(func_name, description, docblock) {
 
     if ("arg" in docblock) {
         push(lines, render("h4", "Arguments") "\n")
-        for (i in docblock["arg"]) {
-            item = docblock["arg"][i]
+
+        # Sort args by indexes (i.e. by argument number.)
+        asorti(docblock["arg"], sorted_indexes)
+        for (i in sorted_indexes) {
+            item = docblock["arg"][sorted_indexes[i]]
+            # Render numbered arguments ($[0-9]+).
             item = render("argN", item)
+            # Render catch-all argument ($@).
             item = render("arg@", item)
             item = render("li", item)
-            if (i == length(docblock["arg"])) {
-                item = item "\n"
-            }
             push(lines, item)
         }
+
+        # Add empty line to signal end of list in markdown.
+        push(lines, "")
     }
 
     if ("noargs" in docblock) {
@@ -421,19 +455,48 @@ in_example {
 
 }
 
-/^[[:space:]]*# @arg/ {
+# Select @arg lines with content.
+/^[[:blank:]]*#[[:blank:]]+@arg[[:blank:]]+[^[:blank:]]/ {
     debug("→ @arg")
-    sub(/^[[:space:]]*# @arg /, "")
+    
+    arg_text = $0
 
-    docblock_push("arg", $0)
+    # Remove '# @arg ' tag.
+    sub(/^[[:blank:]]*#[[:blank:]]+@arg[[:blank:]]+/, "", arg_text)
 
-    next
+    # Trim text.
+    arg_text = trim(arg_text)
+
+    # Test if @arg is a numbered item (or $@).
+    if(match(arg_text, /^\$([0-9]+|@)[[:space:]]/, contents)) {
+        debug(" → → found arg $" arg_number)
+
+        # Fetch matched values.
+        arg_number = contents[1]
+
+        # Zero pad argument number for sorting.
+        if(arg_number ~ /[0-9]+/){
+            arg_number = sprintf("%03d", arg_number)
+        }
+
+        # Add arg description to arg docblock.
+        # arg_number is used as indice for sorting.
+        docblock["arg"][arg_number] = arg_text
+
+        # Stop processing current line, and process next line.
+        next
+    }
+
+    # Ignore badly formated @arg.
+    warn("Invalid format: @arg " arg_text)
 }
 
-/^[[:space:]]*# @noargs/ {
+# Select @noargs line with no additionnal text.
+/^[[:space:]]*#[[:blank:]]+@noargs[[:blank:]]*$/ {
     debug("→ @noargs")
     docblock["noargs"] = 1
 
+    # Stop processing current line, and process next line.
     next
 }
 
