@@ -264,6 +264,19 @@ say-hello-world() {
 }
 ```
 
+### `@stderr`
+
+An expected output of the function call on `/dev/stderr`.
+
+**Example**
+```bash
+# @description Says 'hello world'.
+# @stderr A error message when world is not available.
+say-hello-world() {
+    ...
+}
+```
+
 ### `@see`
 
 Create a link on the given function in the "See Also" section.
