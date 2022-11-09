@@ -60,7 +60,7 @@ _Output_: [examples/readme-example.md](examples/readme-example.md)<br/><br/>
 # @exitcode 1 If an empty string passed.
 #
 # @see validate()
-# @see Documentation generated using [shdoc](https://github.com/reconquest/shdoc).
+# @see [shdoc](https://github.com/reconquest/shdoc).
 say-hello() {
     if [[ ! "$1" ]]; then
         echo "Oups !" >&2
@@ -135,7 +135,7 @@ echo "test: $(say-hello World)"
 #### See also
 
 * [validate()](#validate)
-* Documentation generated using [shdoc](https://github.com/reconquest/shdoc).
+* [shdoc](https://github.com/reconquest/shdoc).
 
 ~~~
 

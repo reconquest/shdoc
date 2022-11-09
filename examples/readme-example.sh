@@ -16,7 +16,7 @@
 #
 #
 # @option -h | --help Display help.
-# @option -v<value> | -v <value> | --value <value> | --value=<value> Set a value.
+# @option -v<value> | --value=<value> Set a value.
 #
 # @arg $1 string A value to print
 #
@@ -29,7 +29,7 @@
 # @exitcode 1 If an empty string passed.
 #
 # @see validate()
-# @see Documentation generated using [shdoc](https://github.com/reconquest/shdoc).
+# @see [shdoc](https://github.com/reconquest/shdoc).
 say-hello() {
     if [[ ! "$1" ]]; then
         echo "Oups !" >&2

@@ -31,7 +31,7 @@ echo "test: $(say-hello World)"
 
   Display help.
 
-* **-v<value>** | **-v <value>** | **--value <value>** | **--value=<value>**
+* **-v<value>** | **--value=<value>**
 
   Set a value.
 
@@ -57,5 +57,5 @@ echo "test: $(say-hello World)"
 #### See also
 
 * [validate()](#validate)
-* Documentation generated using [shdoc](https://github.com/reconquest/shdoc).
+* [shdoc](https://github.com/reconquest/shdoc).
 
