@@ -441,6 +441,9 @@ function render_docblock(func_name, description, docblock) {
                 # Add strong around options, but exclude pipes.
                 term = render("strong", docblock["option"][i]["term"])
                 gsub(/[[:blank:]]+\|[[:blank:]]+/, "** | **", term)
+                # Escape < an >.
+                gsub(/</, "\\<", term)
+                gsub(/>/, "\\>", term)
                 # Render definition list term (dt)
                 item = render("dt", term)
                 push(lines, item)

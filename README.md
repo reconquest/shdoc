@@ -109,7 +109,7 @@ echo "test: $(say-hello World)"
 
   Display help.
 
-* **-v<value>** | **--value=<value>**
+* **-v\<value\>** | **--value=\<value\>**
 
   Set a value.
 

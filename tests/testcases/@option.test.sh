@@ -82,35 +82,35 @@ test-arg 'my-tested-argument'
 
   Show help message.
 
-* **-v<my value>**
+* **-v\\<my value\\>**
 
   Set a value for short option (joined).
 
-* **-v <my value>**
+* **-v \\<my value\\>**
 
   Set a value for short option (space separated).
 
-* **--value=<my value>**
+* **--value=\\<my value\\>**
 
   Set a value for long option (= joined).
 
-* **--value <my value>**
+* **--value \\<my value\\>**
 
   Set a value for long option (space separated).
 
-* **-v <my value>** | **--value <my value>**
+* **-v \\<my value\\>** | **--value \\<my value\\>**
 
   Set a value.
 
-* **-v<my value>** | **--value=<my value>**
+* **-v\\<my value\\>** | **--value=\\<my value\\>**
 
   Set a value (joined).
 
-* **--value=<my value>** | **-v<my value>** | **--longer-value <my value>**
+* **--value=\\<my value\\>** | **-v\\<my value\\>** | **--longer-value \\<my value\\>**
 
   Set a value via three different options.
 
-* **-v<my value>** | **--value=<my value>**
+* **-v\\<my value\\>** | **--value=\\<my value\\>**
 
   Set a value described by @arg.
 
