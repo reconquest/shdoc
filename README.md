@@ -45,14 +45,25 @@ _Output_: [examples/readme-example.md](examples/readme-example.md)<br/><br/>
 # @example
 #    echo "test: $(say-hello World)"
 #
+#
+# @option -h | --help Display help.
+# @option -v<value> | -v <value> | --value <value> | --value=<value> Set a value.
+#
 # @arg $1 string A value to print
+#
+# @stdout Output 'Hello $1'.
+#   It hopes you say Hello back.
+# @stderr Output 'Oups !' on error.
+#   It did it again.
 #
 # @exitcode 0 If successful.
 # @exitcode 1 If an empty string passed.
 #
 # @see validate()
+# @see Documentation generated using [shdoc](https://github.com/reconquest/shdoc).
 say-hello() {
     if [[ ! "$1" ]]; then
+        echo "Oups !" >&2
         return 1;
     fi
 
@@ -92,6 +103,16 @@ Not thread-safe.
 echo "test: $(say-hello World)"
 ```
 
+#### Options
+
+* **-h** | **--help**
+
+  Display help.
+
+* **-v<value>** | **-v <value>** | **--value <value>** | **--value=<value>**
+
+  Set a value.
+
 #### Arguments
 
 * **$1** (string): A value to print
@@ -101,9 +122,21 @@ echo "test: $(say-hello World)"
 * **0**: If successful.
 * **1**: If an empty string passed.
 
+#### Output on stdout
+
+* Output 'Hello $1'.
+  It hopes you say Hello back.
+
+#### Output on stderr
+
+* Output 'Oups !' on error.
+  It did it again.
+
 #### See also
 
 * [validate()](#validate)
+* Documentation generated using [shdoc](https://github.com/reconquest/shdoc).
+
 ~~~
 
 </td>
@@ -181,12 +214,31 @@ say-hello() {
 }
 ```
 
+### `@option`
+
+A description of an option expected to be passed while calling the function.
+Can be specified multiple times to describe any number of arguments.
+If an option argument is expected, it must be specified between `<` and `>`
+
+**Example**
+
+```bash
+# @description Says hi to a given person.
+# @option -h A short option.
+# @arg --value=<value> A long option with argument.
+# @arg -v<value> | --value <value> A long option with short option alternative.
+say-hello() {
+    ...
+}
+```
+
 ### `@arg`
 
 A description of an argument expected to be passed while calling the function.
 Can be specified multiple times to describe any number of arguments.
 
 **Example**
+
 ```bash
 # @description Says hi to a given person.
 # @arg $1 string A person's name.
@@ -201,6 +253,7 @@ say-hello() {
 A note that the function does not expect any arguments to be passed.
 
 **Example**
+
 ```bash
 # @description Says 'hello world'.
 # @noargs
@@ -215,6 +268,7 @@ A description of a global variable that is set while calling the function.
 Can be specified multiple times to describe any number of variables
 
 **Example**
+
 ```bash
 # @description Sets hello to the variable REPLY
 # @set REPLY string Greeting message.
@@ -229,6 +283,7 @@ Describes an expected exitcode of the function.
 Can be specified multiple times to describe all possible exitcodes and their conditions.
 
 **Example**
+
 ```bash
 # @description Says 'hello world'.
 # @exitcode 0 If successful.
@@ -243,6 +298,7 @@ say-hello-world() {
 The expected input to the function call from `stdin` (usually the terminal or command line)
 
 **Example**
+
 ```bash
 # @description Asks name.
 # @stdin The users name from the terminal/command line.
@@ -256,6 +312,7 @@ say-hello-world() {
 An expected output of the function call.
 
 **Example**
+
 ```bash
 # @description Says 'hello world'.
 # @stdout A path to a temporary file with the message.
@@ -269,6 +326,7 @@ say-hello-world() {
 An expected output of the function call on `/dev/stderr`.
 
 **Example**
+
 ```bash
 # @description Says 'hello world'.
 # @stderr A error message when world is not available.
@@ -282,6 +340,7 @@ say-hello-world() {
 Create a link on the given function in the "See Also" section.
 
 **Example**
+
 ```bash
 # @see say-hello
 # @see text with [markdown link](./other-file#other-function)
@@ -298,6 +357,7 @@ It allows you to have the same style of doc comments across the script and keep 
 functions hidden from users.
 
 **Example**
+
 ```bash
 # @internal
 show-msg() {

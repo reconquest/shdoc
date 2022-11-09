@@ -14,6 +14,10 @@
 # @example
 #    echo "test: $(say-hello World)"
 #
+#
+# @option -h | --help Display help.
+# @option -v<value> | -v <value> | --value <value> | --value=<value> Set a value.
+#
 # @arg $1 string A value to print
 #
 # @stdout Output 'Hello $1'.
