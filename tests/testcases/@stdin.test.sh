@@ -39,6 +39,7 @@ Test @stdin functionnality.
 ## Overview
 
 Tests for shdoc processing of @stdin keyword.
+
 ## Index
 
 * [test-stdin](#test-stdin)

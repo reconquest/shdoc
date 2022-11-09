@@ -38,6 +38,7 @@ Test @stdout functionnality.
 ## Overview
 
 Tests for shdoc processing of @stdout keyword.
+
 ## Index
 
 * [test-stdout](#test-stdout)
