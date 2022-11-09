@@ -7,16 +7,19 @@ BEGIN {
     }
 
     styles["github", "h1", "from"] = ".*"
-    styles["github", "h1", "to"] = "# &"
+    styles["github", "h1", "to"] = "# &\n"
 
     styles["github", "h2", "from"] = ".*"
-    styles["github", "h2", "to"] = "## &"
+    styles["github", "h2", "to"] = "## &\n"
 
     styles["github", "h3", "from"] = ".*"
-    styles["github", "h3", "to"] = "### &"
+    styles["github", "h3", "to"] = "### &\n"
 
     styles["github", "h4", "from"] = ".*"
-    styles["github", "h4", "to"] = "#### &"
+    styles["github", "h4", "to"] = "#### &\n"
+
+    styles["github", "strong", "from"] = ".*"
+    styles["github", "strong", "to"] = "**&**"
 
     styles["github", "code", "from"] = ".*"
     styles["github", "code", "to"] = "```&"
@@ -34,6 +37,12 @@ BEGIN {
 
     styles["github", "li", "from"] = ".*"
     styles["github", "li", "to"] = "* &"
+
+    styles["github", "dt", "from"] = ".*"
+    styles["github", "dt", "to"] = "* &\n"
+
+    styles["github", "dd", "from"] = "^.*$"
+    styles["github", "dd", "to"] = "  &"
 
     styles["github", "i", "from"] = ".*"
     styles["github", "i", "to"] = "_&_"
@@ -175,19 +184,25 @@ function reset() {
 
 function handle_description() {
     debug("→ handle_description")
+
+    # Remove empty lines at the start of description.
+    sub(/^[[:space:]\n]*\n/, "", description)
+    # Remove empty lines at the end of description.
+    sub(/[[:space:]\n]*$/, "", description)
+
     if (description == "") {
         debug("→ → description: empty")
         return;
     }
 
     if (section != "" && section_description == "") {
-      debug("→ → description: added")
+      debug("→ → section description: added")
       section_description = description
       return;
     }
 
     if (file_description == "") {
-        debug("→ → description: added")
+        debug("→ → file description: added")
         file_description = description
         return;
     }
@@ -204,7 +219,7 @@ function concat(x, text) {
 }
 
 function push(arr, value) {
-    arr[length(arr)+1] = value
+    arr[length(arr)] = value
 }
 
 function join(arr) {
@@ -220,7 +235,7 @@ function join(arr) {
 }
 
 # @description Remove leading and trailing space from line(s) of text.
-# @arg text A text.
+# @param text A text.
 # @return The trimmed text.
 function trim(text) {
     gsub(/(^[[:blank:]]+|[[:blank:]]+$)/, "", text)
@@ -239,10 +254,32 @@ function docblock_concat(key, value) {
     }
 }
 
+# @description Add a value as the new last item of a docblock.
+#
+# @param docblock_name  Name of the modified docblock.
+# @param value          Added item value.
+#
+# @set docblock[docblock_name] docblock with value added as its last item.
 function docblock_push(key, value) {
-    docblock[key][length(docblock[key])+1] = value
-}
+    new_item_index = length(docblock[key])
+    # Reinitialize docblock key value if it is empty to allow for array storage.
+    if(new_item_index == 0)
+    {
+        delete docblock[key]
+    }
+    if(isarray(value))
+    {
 
+        # Value is an array. Add its contents key by key to the docblock.
+        # Note that is only allow for single dimension value array.
+        for (i in value) {
+            docblock[key][new_item_index][i] = value[i]
+        }
+    }
+    else {
+        docblock[key][new_item_index] = value
+    }
+}
 
 # @description Append a text to the last item of a docblock.
 #
@@ -252,7 +289,13 @@ function docblock_push(key, value) {
 # @set docblock[docblock_name] docblock with text appended to last item.
 function docblock_append(docblock_name, text) {
     # Detect last docblock item index.
-    last_item_index = length(docblock[docblock_name])
+    last_item_index = length(docblock[docblock_name]) - 1
+
+    # Ensure there is no issue if docblock[docblock_name] is empty.
+    if(last_item_index < 0) {
+        last_item_index = 0
+    }
+
     # Append text to last docblock item.
     docblock[docblock_name][last_item_index] = docblock[docblock_name][last_item_index] text
 }
@@ -265,11 +308,12 @@ function docblock_append(docblock_name, text) {
 #
 # @stdout A unordered list of the dockblock entries.
 function render_docblock_list(docblock, docblock_name, title) {
-    push(lines, render("h4", title) "\n")
+    push(lines, render("h4", title))
     # Initialize list item.
     item = ""
     # For each dockblock line.
     for (i in docblock[docblock_name]) {
+        docblock[docblock_name][i]
         # Ident additionnal lines to add them to the markdown list item.
         gsub(/\n/, "\n  ", docblock[docblock_name][i])
         item = render("li", docblock[docblock_name][i])
@@ -280,38 +324,145 @@ function render_docblock_list(docblock, docblock_name, title) {
     push(lines, "")
 }
 
+# @description Process a text as an @option tag content.
+#   The @option accept the folling format:
+#
+#   # @option <option> <description>
+#
+#   Where <option> allows:
+#
+#   - **-o** : single letter short option, signaled by single dash.
+#       Allow for all letters in the A-Z and a-z ranges.
+#   - **-o<argument> : single letter short option with argument.
+#       Argument must be between < and >.
+#   - **--option** : long option, signaled by double dash.
+#   - **--option=<argument> : long option with argument.
+#       Argument must be between < and >.
+#   - **-o | --option** : long option with short option version.
+#
+#   To achieve this, process_at_option uses a complex regular expression.
+#   which is decomposed below:
+#
+#   ```awk
+#   # Set optional arg (- and -- options) regex
+#   short_option_regex = "-[[:alnum:]]([[:blank:]]*<[^>]+>)?"
+#   long_option_regex = "--[[:alnum:]][[:alnum:]-]*((=|[[:blank:]]+)<[^>]+>)?"
+#   pipe_separator_regex = "([[:blank:]]*\\|?[[:blank:]]+)"
+#   description_regex = "([^[:blank:]|<-].*)?"
+#   
+#   # Build regex matching all options
+#   short_or_long_option_regex = sprintf("(%s|%s)", short_option_regex, long_option_regex)
+# 
+#   # Build regex matching multiple options separated by spaces or pipe.
+#   all_options_regex = sprintf("(%s%s)+", short_or_long_option_regex, pipe_separator_regex)
+# 
+#   # Build final regex.
+#   optional_arg_regex = sprintf("^(%s)%s$", all_options_regex, description_regex)
+#   ```
+# 
+#   Final regex with non-matching groups (unsupported by gawk).
+# 
+#   `^((?:(?:-[[:alnum:]](?:[[:blank:]]*<[^>]+>)?|--[[:alnum:]][[:alnum:]-]*(?:(?:=|[[:blank:]]+)<[^>]+>)?)(?:[[:blank:]]*\|?[[:blank:]]+))+)([^[:blank:]|<-].*)?$`
+#
+# @param text   The text to process as an @option entry.
+# 
+# @set dockblock["option"] A docblock for correctly formated options.
+# @set dockblock["option-bad"] A docblock for badly formated options.
+function process_at_option(text) {
+
+    # Test if @arg is a command-line option description (starting by - or --).
+    if(match(text, /^(((-[[:alnum:]]([[:blank:]]*<[^>]+>)?|--[[:alnum:]][[:alnum:]-]*((=|[[:blank:]]+)<[^>]+>)?)([[:blank:]]*\|?[[:blank:]]+))+)([^[:blank:]|<-].*)?$/, contents)) {
+        debug(" → → found correctly formated @option.")
+
+        # Fetch matched values.
+        term = trim(contents[1])
+        option_description["definition"] = trim(contents[8])
+
+        # Trim spaces around pipes.
+        gsub(/[[:blank:]]+\|[[:blank:]]+/, " | ", term)
+
+        # Add term (-option | --option) to option description.
+        option_description["term"] = term
+
+        # Add values to optional-arg docblock.
+        docblock_push("option", option_description)
+
+    } else {
+        # Warn of badly formated @option.
+        warn("Invalid format: @option " text)
+
+        # For backward compatibility,
+        # process badly formated @arg as badly formated option.
+        docblock_push("option-bad", text)
+    }
+}
+
 function render_docblock(func_name, description, docblock) {
     debug("→ render_docblock")
     debug("→ → func_name: [" func_name "]")
     debug("→ → description: [" description "]")
 
+    # Reset lines variable to allow for a new array creation.
+    delete lines
+
     if (section != "") {
       lines[0] = render("h2", section)
       if (section_description != "") {
         push(lines, section_description)
+        # Add empty line to signal end of description.
+        push(lines, "")
       }
       section = ""
       section_description = ""
       push(lines, render("h3", func_name))
-      push(lines, "")
     } else {
       lines[0] = render("h3", func_name)
     }
-    
+
     if (description != "") {
         push(lines, description)
+        # Add empty line to signal end of description.
+        push(lines, "")
     }
 
     if ("example" in docblock) {
         push(lines, render("h4", "Example"))
-        push(lines, "\n" render("code", "bash"))
+        push(lines, render("code", "bash"))
         push(lines, unindent(docblock["example"]))
         push(lines, render("/code"))
         push(lines, "")
     }
 
+    if ("option" in docblock || "option-bad" in docblock) {
+        push(lines, render("h4", "Options"))
+
+        if ("option" in docblock) {
+            for (i in docblock["option"]) {
+                # Add strong around options, but exclude pipes.
+                term = render("strong", docblock["option"][i]["term"])
+                gsub(/[[:blank:]]+\|[[:blank:]]+/, "** | **", term)
+                # Render definition list term (dt)
+                item = render("dt", term)
+                push(lines, item)
+                # Render definition list definition (dd)
+                item = render("dd", docblock["option"][i]["definition"] "\n")
+                push(lines, item)
+            }
+        }
+
+        if ("option-bad" in docblock) {
+            for (i in docblock["option-bad"]) {
+                item = render("li", docblock["option-bad"][i])
+                push(lines, item)
+            }
+
+            # Add empty line to signal end of list in markdown.
+            push(lines, "")
+        }
+    }
+
     if ("arg" in docblock) {
-        push(lines, render("h4", "Arguments") "\n")
+        push(lines, render("h4", "Arguments"))
 
         # Sort args by indexes (i.e. by argument number.)
         asorti(docblock["arg"], sorted_indexes)
@@ -330,31 +481,34 @@ function render_docblock(func_name, description, docblock) {
     }
 
     if ("noargs" in docblock) {
-        push(lines, render("i", "Function has no arguments.") "\n")
+        push(lines, render("i", "Function has no arguments."))
+
+        # Add empty line to signal end of list in markdown.
+        push(lines, "")
     }
 
     if ("set" in docblock) {
-        push(lines, render("h4", "Variables set") "\n")
+        push(lines, render("h4", "Variables set"))
         for (i in docblock["set"]) {
             item = docblock["set"][i]
             item = render("set", item)
             item = render("li", item)
-            if (i == length(docblock["set"])) {
-                item = item "\n"
-            }
             push(lines, item)
         }
+
+        # Add empty line to signal end of list in markdown.
+        push(lines, "")
     }
 
     if ("exitcode" in docblock) {
-        push(lines, render("h4", "Exit codes") "\n")
+        push(lines, render("h4", "Exit codes"))
         for (i in docblock["exitcode"]) {
             item = render("li", render("exitcode", docblock["exitcode"][i]))
-            if (i == length(docblock["exitcode"])) {
-                item = item "\n"
-            }
             push(lines, item)
         }
+
+        # Add empty line to signal end of list in markdown.
+        push(lines, "")
     }
 
     if ("stdin" in docblock) {
@@ -370,20 +524,18 @@ function render_docblock(func_name, description, docblock) {
     }
 
     if ("see" in docblock) {
-        push(lines, render("h4", "See also") "\n")
+        push(lines, render("h4", "See also"))
         for (i in docblock["see"]) {
             item = render("li", render_toc_link(docblock["see"][i]))
-            if (i == length(docblock["see"])) {
-                item = item "\n"
-            }
             push(lines, item)
         }
+
+        # Add empty line to signal end of list in markdown.
+        push(lines, "")
     }
 
-
     result = join(lines)
-    delete lines
-    return join(lines)
+    return result
 }
 
 function debug(msg) {
@@ -433,7 +585,7 @@ in_description {
     if (/^[^[[:space:]]*#]|^[[:space:]]*# @[^d]|^[[:space:]]*[^#]|^[[:space:]]*$/) {
         debug("→ → in_description: leave")
         if (!match(description, /\n$/)) {
-            description = description "\n"
+            description = description
         }
 
         in_description = 0
@@ -481,6 +633,24 @@ in_example {
 
 }
 
+# Select @option lines with content.
+/^[[:blank:]]*#[[:blank:]]+@option[[:blank:]]+[^[:blank:]]/ {
+    debug("→ @option")
+    option_text = $0
+
+    # Remove '# @option ' tag.
+    sub(/^[[:blank:]]*#[[:blank:]]+@option[[:blank:]]+/, "", option_text)
+
+    # Trim text.
+    option_text = trim(option_text)
+
+    # Process @option text.
+    process_at_option(option_text)
+
+    # Stop processing current line, and process next line.
+    next
+}
+
 # Select @arg lines with content.
 /^[[:blank:]]*#[[:blank:]]+@arg[[:blank:]]+[^[:blank:]]/ {
     debug("→ @arg")
@@ -514,7 +684,13 @@ in_example {
     }
 
     # Ignore badly formated @arg.
-    warn("Invalid format: @arg " arg_text)
+    warn("Invalid format, processed as @option: @arg " arg_text)
+
+    # Process @arg as option, if badly formated.
+    process_at_option(arg_text)
+
+    # Stop processing current line, and process next line.
+    next
 }
 
 # Select @noargs line with no additionnal text.
@@ -559,7 +735,7 @@ in_example {
 multiple_line_docblock_name {
     # Check if current line indentation does match the previous line docblock item.
     if ($0 ~ multiple_line_identation_regex ) {
-        debug("→ @" multiple_line_docblock_name)
+        debug("→ @" multiple_line_docblock_name " - new line")
         
         # Current line has the same indentation as the stderr section.
     
@@ -645,21 +821,21 @@ END {
         print render("h1", file_title)
 
         if (file_brief != "") {
-            print "\n" file_brief
+            print file_brief "\n" 
         }
 
         if (file_description != "") {
-            print "\n" render("h2", "Overview")
-            print "\n" file_description
+            print render("h2", "Overview")
+            print file_description "\n" 
         }
     }
 
     if (toc != "") {
-        print render("h2", "Index") "\n"
-        print toc
+        print render("h2", "Index")
+        print toc "\n" 
     }
 
-    print "\n" doc
+    print doc
 
     ## TODO: add examples section
 }
