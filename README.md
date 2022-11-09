@@ -47,7 +47,7 @@ _Output_: [examples/readme-example.md](examples/readme-example.md)<br/><br/>
 #
 #
 # @option -h | --help Display help.
-# @option -v<value> | -v <value> | --value <value> | --value=<value> Set a value.
+# @option -v<value> | --value=<value> Set a value.
 #
 # @arg $1 string A value to print
 #
@@ -109,7 +109,7 @@ echo "test: $(say-hello World)"
 
   Display help.
 
-* **-v<value>** | **-v <value>** | **--value <value>** | **--value=<value>**
+* **-v<value>** | **--value=<value>**
 
   Set a value.
 
