@@ -106,8 +106,9 @@ function process_function(text) {
         debug("→ → function: register")
 
         is_internal = 0
+
         func_name = gensub(\
-            /^[[:blank:]]*(function([[:blank:]])+)?([a-zA-Z0-9_\-:-\\.]+)[[:blank:]]*\(.*/, \
+            /^[[:blank:]]*(function([[:blank:]])+)?([a-zA-Z0-9_\-:-\\.]+)[[:blank:]]*.*/, \
             "\\3", \
             "g", \
             text \
