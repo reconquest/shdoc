@@ -20,7 +20,7 @@ tests:put expected <<EOF
 ## Index
 
 * [some:first:func](#somefirstfunc)
-* [some_other_func](#some_other_func)
+* [some_other_func](#someotherfunc)
 
 ### some:first:func
 
