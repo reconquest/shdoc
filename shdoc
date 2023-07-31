@@ -178,6 +178,7 @@ function render_toc_link(text) {
       # @see https://github.com/jch/html-pipeline/blob/master/lib/html/pipeline/toc_filter.rb#L44-L45
       url = tolower(url)
       gsub(/[^[:alnum:] _-]/, "", url)
+      gsub(/_/, "", url)
       gsub(/ /, "-", url)
     }
 
