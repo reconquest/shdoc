@@ -84,6 +84,59 @@ function warn(message) {
         warn_message_color, NR, message, color_clear) > "/dev/stderr"
 }
 
+# @description Process a line of text as a function declaration.
+#   This is a function called when encountering a function declaration,
+#   or a line starting by a opening bracket `{` with a previous line matching
+#   a function declaration.
+#
+# @param text The line containing the function declaration,
+#        with or without opening bracket.
+#
+# @set is_internal Set internal to 0.
+# @set func_name Set the function name.
+# @set doc Add function documentation to doc output.
+# @set toc Add link to function documentation to table of contents.
+function process_function(text) {
+    if ( \
+        (length(docblock) == 0 && description == "") \
+        || in_example \
+    ) {
+        # If docblock and description are empty,
+        # or if function in example section,
+        # skip function declaration.
+        return
+    }
+
+    debug("→ function")
+    if (is_internal) {
+        debug("→ → function: it is internal, skip")
+        is_internal = 0
+    } else {
+        debug("→ → function: register")
+
+        is_internal = 0
+
+        func_name = gensub(\
+            /^[[:blank:]]*(function([[:blank:]])+)?([a-zA-Z0-9_\-:-\\.]+)[[:blank:]]*.*/, \
+            "\\3", \
+            "g", \
+            text \
+        )
+
+        # Add function documentation to output.
+        doc = concat(doc, render_docblock(func_name, description, docblock))
+        # Add function link to table of contents.
+        toc = concat(toc, render_toc_item(func_name))
+    }
+
+    # Function document has been added to output.
+    # Reset variables to allow for another function documentation processing.
+    reset()
+
+    # Process next line.
+    next
+}
+
 function render(type, text) {
     return gensub( \
         styles[style, type, "from"],
@@ -775,37 +828,61 @@ match($0, /^([[:blank:]]*#[[:blank:]]+)@(stdin|stdout|stderr)[[:blank:]]+(.*[^[:
     next
 }
 
-/^[ \t]*(function([ \t])+)?([a-zA-Z0-9_\-:-\\.]+)([ \t]*)(\(([ \t]*)\))?[ \t]*\{/ \
-    && (length(docblock) != 0 || description != "") && !in_example {
-    debug("→ function")
-    if (is_internal) {
-        debug("→ → function: it is internal, skip")
-        is_internal = 0
-    } else {
-        debug("→ → function: register")
+# If docblock if not empty, and description is set,
+# and if this is not an example,
+# this regex matches:
+# - `function function_name () {`
+# - `function_name () {`
+# - `function_name {`
+/^[[:blank:]]*(function[[:blank:]]+)?([a-zA-Z0-9_\-:-\\.]+)[[:blank:]]*(\([[:blank:]]*\))?[[:blank:]]*\{/ \
+{
+    process_function($0)
+}
 
-        is_internal = 0
-        func_name = gensub(\
-            /^[ \t]*(function([ \t])+)?([a-zA-Z0-9_\-:-\\.]+)[ \t]*\(.*/, \
-            "\\3", \
-            "g" \
-        )
-
-        doc = concat(doc, render_docblock(func_name, description, docblock))
-        toc = concat(toc, render_toc_item(func_name))
-    }
-
-    reset()
+# If line look like a function declaration but is missing opening bracket,
+/^[[:blank:]]*(function[[:blank:]]+)?([a-zA-Z0-9_\-:-\\.]+)[[:blank:]]*(\([[:blank:]]*\))?/ \
+{
+    # store it for future use
+    debug("→ look like a function declaration, store line")
+    function_declaration = $0
     next
 }
 
+# Handle lone opening bracket if previous line is a function declaration.
+/^[[:blank:]]*\{/ \
+    && function_declaration != "" {
+    debug("→ multi-line function declaration.")
+    # Process function declaration.
+    process_function(function_declaration)
+}
+
+# Skip empty lines (allow for break in comment),
+# if function_declaration is not empty (i.e. waiting for an opening bracket).
+/^[[:blank:]]*$/ \
+    && function_declaration != "" {
+    debug("→ waiting for opening bracket.")
+    next
+}
+
+# Handle non comment lines.
 /^[^#]*$/ {
     debug("→ break")
+
+    # Line is not an opening bracket,
+    # this is not a function declaration.
+    function_declaration = ""
+
+    # Add current (section) description to output.
     handle_description();
+
+    # Reset docblock.
     reset()
+
+    # Skip current line.
     next
 }
 
+# Handle everything else. This should never occur.
 {
     debug("→ NOT HANDLED")
 }
