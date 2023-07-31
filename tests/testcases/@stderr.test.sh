@@ -50,6 +50,7 @@ Test @stderr functionnality.
 ## Overview
 
 Tests for shdoc processing of @stderr keyword.
+
 ## Index
 
 * [test-stderr](#test-stderr)

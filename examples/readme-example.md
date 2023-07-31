@@ -25,6 +25,16 @@ Not thread-safe.
 echo "test: $(say-hello World)"
 ```
 
+#### Options
+
+* **-h** | **--help**
+
+  Display help.
+
+* **-v\<value\>** | **--value=\<value\>**
+
+  Set a value.
+
 #### Arguments
 
 * **$1** (string): A value to print
@@ -47,4 +57,5 @@ echo "test: $(say-hello World)"
 #### See also
 
 * [validate()](#validate)
-* Documentation generated using [shdoc](https://github.com/reconquest/shdoc).
+* [shdoc](https://github.com/reconquest/shdoc).
+
