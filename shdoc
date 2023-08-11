@@ -53,6 +53,16 @@ BEGIN {
     styles["github", "exitcode", "from"] = "([>!]?[0-9]{1,3}) (.*)"
     styles["github", "exitcode", "to"] = "**\\1**: \\2"
 
+    styles["github", "deprecated-badge", "from"] = "([^\t]+)\t(.*)"
+    styles["github", "deprecated-badge", "to"] = "[![Deprecated \\2](https://img.shields.io/badge/Deprecated-\\1-red.svg)](#)"
+
+    styles["github", "feature-badge", "from"] = "([^\t]+)\t(.*)"
+    styles["github", "feature-badge", "to"] = "[![Featuring \\2](https://img.shields.io/badge/Feature-\\1-green.svg)](#)"
+
+    styles["github", "warning-badge", "from"] = ".*"
+    styles["github", "warning-badge", "to"] = "[![& Warning(s)](https://img.shields.io/badge/Warnings-&-yellow.svg)](#)"
+
+
     stderr_section_flag = 0
 
     debug_enable = ENVIRON["SHDOC_DEBUG"] == "1"
@@ -61,7 +71,40 @@ BEGIN {
         debug_fd = 2
     }
     debug_file = "/dev/fd/" debug_fd
+    
+    # declare empty arrays for url_encode
+    split("", url_encode_hex_tab)
+    split("", url_encode_ord)
 }
+
+# @see https://searchcode.com/codesearch/view/77692066/
+function url_encode(str) {
+    if (length(url_encode_hex_tab) == 0) {
+        # lazy initialization
+        split ("1 2 3 4 5 6 7 8 9 A B C D E F", url_encode_hex_tab, " ")
+        url_encode_hex_tab[0] = 0
+        for ( i=1; i<=255; ++i ) url_encode_ord[ sprintf ("%c", i) "" ] = i + 0
+    }
+    len = length(str)
+    encoded = ""
+    for (i = 1; i <= len; i++) {
+	    c = substr(str, i, 1);
+	    if (c ~ /[0-9A-Za-z.]/) {
+	        encoded = encoded c
+	    } else if ( c == " " ) {
+            encoded = encoded "%20"   # special handling
+        } else {
+            # unsafe character, encode it as a two-digit hex-number
+	        encoded = encoded "%" sprintf("%02X", url_encode_ord[c])
+
+            lo = url_encode_ord [c] % 16
+            hi = int (url_encode_ord [c] / 16);
+            encoded = encoded "%" url_encode_hex_tab[hi] url_encode_hex_tab[lo]
+        }
+    }
+    return encoded
+}
+
 
 # @description Display the given error message with its line number on stderr.
 #              and exit with error.
@@ -473,6 +516,36 @@ function render_docblock(func_name, description, docblock) {
       lines[0] = render("h3", func_name)
     }
 
+    atLeastOneBadge=0
+    if ("deprecated" in docblock) {
+        for (i in docblock["deprecated"]) {
+            status=docblock["deprecated"][i]
+            if (status == "") {
+                status="True"
+            }
+            push(lines, render("deprecated-badge", url_encode(status) "\t" status))
+            atLeastOneBadge=1
+        }
+    }
+    if ("feature" in docblock) {
+        for (i in docblock["feature"]) {
+            status="True"
+            if (match(docblock["feature"][i], "^([^[:blank:]]+)", matches)) {
+                status=matches[1]
+            }
+            push(lines, render("feature-badge", url_encode(status) "\t" status))
+            atLeastOneBadge=1
+        }
+    }
+    if ("warning" in docblock) {
+        push(lines, render("warning-badge", length(docblock["warning"])))
+        atLeastOneBadge=1
+    }
+    if (atLeastOneBadge) {
+        # Add empty line to signal end of description.
+        push(lines, "")
+    }
+
     if (description != "") {
         push(lines, description)
         # Add empty line to signal end of description.
@@ -481,7 +554,7 @@ function render_docblock(func_name, description, docblock) {
 
     if ("example" in docblock) {
         push(lines, render("h4", "Example"))
-        push(lines, render("code", "bash"))
+        push(lines, render("code", docblock["example_format"]))
         push(lines, unindent(docblock["example"]))
         push(lines, render("/code"))
         push(lines, "")
@@ -544,6 +617,19 @@ function render_docblock(func_name, description, docblock) {
         push(lines, "")
     }
 
+    if ("env" in docblock) {
+        push(lines, render("h4", "Environment variables"))
+        for (i in docblock["env"]) {
+            item = docblock["env"][i]
+            item = render("set", item)
+            item = render("li", item)
+            push(lines, item)
+        }
+
+        # Add empty line to signal end of list in markdown.
+        push(lines, "")
+    }
+
     if ("set" in docblock) {
         push(lines, render("h4", "Variables set"))
         for (i in docblock["set"]) {
@@ -579,6 +665,11 @@ function render_docblock(func_name, description, docblock) {
     if ("stderr" in docblock) {
         render_docblock_list(docblock, "stderr", "Output on stderr")
     }
+    
+    render_list(docblock, "require", "Requires")
+    render_list(docblock, "feature", "Features")
+    render_list(docblock, "trap", "Traps")
+    render_list(docblock, "warning", "Warnings")
 
     if ("see" in docblock) {
         push(lines, render("h4", "See also"))
@@ -593,6 +684,17 @@ function render_docblock(func_name, description, docblock) {
 
     result = join(lines)
     return result
+}
+
+function render_list(docblock, type, title) {
+    if (type in docblock) {
+        push(lines, render("h4", title))
+        for (i in docblock[type]) {
+            push(lines, render("li", unindent(docblock[type][i])))
+        }
+        # Add empty line to signal end of list in markdown.
+        push(lines, "")
+    }
 }
 
 function debug(msg) {
@@ -664,11 +766,15 @@ in_description {
   next
 }
 
-/^[[:space:]]*# @example/ {
+/^[[:space:]]*# @example.*/ {
     debug("→ @example")
 
     in_example = 1
-
+    in_example_format="bash"
+    if(match($0, /@example[[:space:]]*([a-z]+)/, matches)) {
+        debug(" → → example format " matches[1])
+        in_example_format=matches[1]
+    }
 
     next
 }
@@ -682,9 +788,24 @@ in_example {
         sub(/^[[:space:]]*#/, "")
 
         docblock_concat("example", $0)
+        docblock_set("example_format", in_example_format)
         next
     }
 
+}
+
+# Select @warning lines with content.
+match($0, /^[[:blank:]]*#[[:blank:]]+@(env|warning|constraint|require|feature|deprecated|trap)[[:blank:]]*(.*)$/, matches) {
+    type = matches[1]
+    # Trim text.
+    line = trim(matches[2])
+    debug("→ @" type)
+    
+    # Add warning description to warning docblock.
+    docblock[type][length(docblock[type])+1] = line
+
+    # Stop processing current line, and process next line.
+    next
 }
 
 # Select @option lines with content.
