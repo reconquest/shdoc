@@ -10,6 +10,8 @@ definitions, and creates a markdown file with ready to use documentation.
 
 - [Index](#index)
 - [Example](#example)
+  - [Source file](#source-file)
+  - [Output](#output)
 - [Features](#features)
   - [`@name`](#name)
   - [`@file`](#file)
@@ -42,17 +44,18 @@ definitions, and creates a markdown file with ready to use documentation.
 
 ## Example
 
-<table border="0">
- <tr>
-    <td style="vertical-align: top">
-
 Generate documentation with the following command:
+
 ~~~bash
 $ shdoc < lib.sh > doc.md
 ~~~
 
-_Source_ [examples/readme-example.sh](examples/readme-example.sh)<br />
-_Output_: [examples/readme-example.md](examples/readme-example.md)<br/><br/>
+_Source_ [examples/readme-example.sh](examples/readme-example.sh)
+
+_Output_: [examples/readme-example.md](examples/readme-example.md)
+
+### Source file
+
 ~~~bash
 #!/bin/bash
 # @file libexample
@@ -109,9 +112,7 @@ say-hello() {
 }
 ~~~
 
-
-</td>
-<td>
+### Output
 
 ~~~markdown
 # libexample
@@ -203,10 +204,6 @@ echo "test: $(say-hello World)"
 * [shdoc](https://github.com/reconquest/shdoc).
 
 ~~~
-
-</td>
-</tr></table>
-
 
 ## Features
 
