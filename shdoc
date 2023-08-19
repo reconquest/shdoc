@@ -35,6 +35,9 @@ BEGIN {
     styles["github", "set", "from"] = "^(\\S+) (\\S+)"
     styles["github", "set", "to"] = "**\\1** (\\2):"
 
+    styles["github", "li-preprocess", "from"] = "\n"
+    styles["github", "li-preprocess", "to"] = "\n  "
+
     styles["github", "li", "from"] = ".*"
     styles["github", "li", "to"] = "* &"
 
@@ -50,7 +53,7 @@ BEGIN {
     styles["github", "anchor", "from"] = ".*"
     styles["github", "anchor", "to"] = "[&](#&)"
 
-    styles["github", "exitcode", "from"] = "([>!]?[0-9]{1,3}) (.*)"
+    styles["github", "exitcode", "from"] = "([>!]?[0-9]{1,3})[[:blank:]](.*)"
     styles["github", "exitcode", "to"] = "**\\1**: \\2"
 
     stderr_section_flag = 0
@@ -236,28 +239,30 @@ function reset() {
     description = ""
 }
 
-function handle_description() {
+function handle_description(text) {
     debug("→ handle_description")
 
     # Remove empty lines at the start of description.
-    sub(/^[[:space:]\n]*\n/, "", description)
+    sub(/^[[:space:]\n]*\n/, "", text)
     # Remove empty lines at the end of description.
-    sub(/[[:space:]\n]*$/, "", description)
+    sub(/[[:space:]\n]*$/, "", text)
 
-    if (description == "") {
+    if (text == "") {
         debug("→ → description: empty")
         return;
     }
 
+    description = text
+
     if (section != "" && section_description == "") {
       debug("→ → section description: added")
-      section_description = description
+      section_description = text
       return;
     }
 
     if (file_description == "") {
         debug("→ → file description: added")
-        file_description = description
+        file_description = text
         return;
     }
 }
@@ -369,8 +374,8 @@ function render_docblock_list(docblock, docblock_name, title) {
     for (i in docblock[docblock_name]) {
         docblock[docblock_name][i]
         # Ident additionnal lines to add them to the markdown list item.
-        gsub(/\n/, "\n  ", docblock[docblock_name][i])
-        item = render("li", docblock[docblock_name][i])
+        item = render("li-preprocess", docblock[docblock_name][i])
+        item = render("li", item)
         push(lines, item)
     }
 
@@ -403,23 +408,23 @@ function render_docblock_list(docblock, docblock_name, title) {
 #   long_option_regex = "--[[:alnum:]][[:alnum:]-]*((=|[[:blank:]]+)<[^>]+>)?"
 #   pipe_separator_regex = "([[:blank:]]*\\|?[[:blank:]]+)"
 #   description_regex = "([^[:blank:]|<-].*)?"
-#   
+#
 #   # Build regex matching all options
 #   short_or_long_option_regex = sprintf("(%s|%s)", short_option_regex, long_option_regex)
-# 
+#
 #   # Build regex matching multiple options separated by spaces or pipe.
 #   all_options_regex = sprintf("(%s%s)+", short_or_long_option_regex, pipe_separator_regex)
-# 
+#
 #   # Build final regex.
 #   optional_arg_regex = sprintf("^(%s)%s$", all_options_regex, description_regex)
 #   ```
-# 
+#
 #   Final regex with non-matching groups (unsupported by gawk).
-# 
+#
 #   `^((?:(?:-[[:alnum:]](?:[[:blank:]]*<[^>]+>)?|--[[:alnum:]][[:alnum:]-]*(?:(?:=|[[:blank:]]+)<[^>]+>)?)(?:[[:blank:]]*\|?[[:blank:]]+))+)([^[:blank:]|<-].*)?$`
 #
 # @param text   The text to process as an @option entry.
-# 
+#
 # @set dockblock["option"] A docblock for correctly formated options.
 # @set dockblock["option-bad"] A docblock for badly formated options.
 function process_at_option(text) {
@@ -482,7 +487,9 @@ function render_docblock(func_name, description, docblock) {
     if ("example" in docblock) {
         push(lines, render("h4", "Example"))
         push(lines, render("code", "bash"))
-        push(lines, unindent(docblock["example"]))
+        # Unindent should be done by the new code.
+        #push(lines, unindent(docblock["example"]))
+        push(lines, docblock["example"])
         push(lines, render("/code"))
         push(lines, "")
     }
@@ -547,8 +554,8 @@ function render_docblock(func_name, description, docblock) {
     if ("set" in docblock) {
         push(lines, render("h4", "Variables set"))
         for (i in docblock["set"]) {
-            item = docblock["set"][i]
-            item = render("set", item)
+            item = render("set", docblock["set"][i])
+            item = render("li-preprocess", item)
             item = render("li", item)
             push(lines, item)
         }
@@ -560,7 +567,9 @@ function render_docblock(func_name, description, docblock) {
     if ("exitcode" in docblock) {
         push(lines, render("h4", "Exit codes"))
         for (i in docblock["exitcode"]) {
-            item = render("li", render("exitcode", docblock["exitcode"][i]))
+            item = render("exitcode", docblock["exitcode"][i])
+            item = render("li-preprocess", item)
+            item = render("li", item)
             push(lines, item)
         }
 
@@ -583,7 +592,8 @@ function render_docblock(func_name, description, docblock) {
     if ("see" in docblock) {
         push(lines, render("h4", "See also"))
         for (i in docblock["see"]) {
-            item = render("li", render_toc_link(docblock["see"][i]))
+            item = render("li-preprocess", render_toc_link(docblock["see"][i]))
+            item = render("li", item)
             push(lines, item)
         }
 
@@ -604,6 +614,92 @@ function debug(msg) {
 {
     debug("line: [" $0 "]")
 }
+
+# Previous line added a new docblock item.
+# Check if current line has the needed indentation
+# for it to be a multiple lines docblock item.
+#
+# This process must be done before any @ tag detection.
+multiple_line_tag {
+    # Determine if the tag allow for next line without additionnal indentation.
+    # This should be only be true for @description and @example tags, for the moment.
+    no_indentation_match = ""
+    if (multiple_line_tag ~ /^(description|example)$/) {
+        no_indentation_match = sprintf("|%s[^@].*", after_hash_indentation)
+    }
+    multiple_line_identation_regex = sprintf( \
+        "^%s([[:blank:]]*|%s([[:blank:]]+[^[:blank:]]).*%s)$", \
+        hash_indentation, \
+        after_hash_indentation, \
+        no_indentation_match \
+    )
+
+    # Check if current line indentation does match the previous line docblock item.
+    if (match($0, multiple_line_identation_regex, contents)) {
+        debug("→ → @" multiple_line_tag " next line")
+        additional_line = contents[1]
+
+        # Detect text internal indentation.
+        if(trim(additional_line) != "" \
+            && match(additional_line, /^([[:blank:]]*)([^[:blank:]].*)?$/, detected_indentation))
+        {
+            # Detect the minimal indentation of the text.
+            if(minimal_indentation == -1 \
+                || length(minimal_indentation) > length(detected_indentation[1])) {
+                minimal_indentation = detected_indentation[1]
+            }
+        }
+
+        # Remove trailing spaces.
+        sub(/[[:space:]]+$/, "")
+
+        # Push matched message to corresponding docblock.
+        # docblock_append(multiple_line_docblock_name, "\n" $0)
+        text = concat(text, additional_line)
+
+        # Stop processing current line, and process next line.
+        next
+    } else {
+        # End of the multiple line tag.
+        debug("→ → END of @" multiple_line_tag)
+
+        # Remove minimal indentation from text.
+        if(minimal_indentation != -1) {
+            debug("→ → removing indentation from @ " multiple_line_tag " (length: " length(minimal_indentation) ")")
+            split(text, text_lines, "\n")
+            text = ""
+            for (i = 0; i < length(text_lines); i++) {
+                current_line = text_lines[i]
+                sub("^" minimal_indentation,"", current_line)
+                text = concat(text, current_line)
+            }
+        }
+
+        # Remove empty lines at the start of text.
+        sub(/^[[:space:]\n]*\n/, "", text)
+        # Remove empty lines at the end of text.
+        sub(/[[:space:]\n]*$/, "", text)
+
+        ## Print final text on debug output.
+        debug("→ → Final text for @" multiple_line_tag " : [\n" text "\n]")
+
+        if(multiple_line_tag == "description") {
+            # If current tag is a description.
+            # Call handle_description with description set as the multiline text.
+            handle_description(text)
+        } else if (multiple_line_tag ~ /^(stdin|stdout|stderr|set|exitcode|see)$/) {
+            # If current tag is a multiple occurence tag.
+            # Push multi-line text as new item of the corresponding docblock.
+            docblock_push(multiple_line_tag, text)
+        } else {
+            docblock_set(multiple_line_tag, text)
+        }
+
+        # End previous line docblock item.
+        multiple_line_tag = ""
+    }
+}
+
 
 /^[[:space:]]*# @internal/ {
     debug("→ @internal")
@@ -628,33 +724,32 @@ function debug(msg) {
     next
 }
 
-/^[[:space:]]*# @description/ {
-    debug("→ @description")
-    in_description = 1
-    in_example = 0
-
-    handle_description()
-
-    reset()
-}
-
-in_description {
-    if (/^[^[[:space:]]*#]|^[[:space:]]*# @[^d]|^[[:space:]]*[^#]|^[[:space:]]*$/) {
-        debug("→ → in_description: leave")
-
-        in_description = 0
-
-        handle_description()
+# Process @description entries.
+# Allow for multiple lines entries.
+match($0, /^([[:blank:]]*#)([[:blank:]]+)@(description|example|stdin|stdout|stderr|set|exitcode|see)[[:blank:]]*(.*[^[:blank:]])?[[:blank:]]*$/, contents) {
+    # Fetch matched values.
+    hash_indentation = contents[1]
+    after_hash_indentation = contents[2]
+    tag_name = contents[3]
+    if(tag_name == "example") {
+        # For @example tag, the content of the tag line is ignored.
+        text = ""
     } else {
-        debug("→ → in_description: concat")
-        sub(/^[[:space:]]*# @description[[:space:]]*/, "")
-        sub(/^[[:space:]]*#[[:space:]]*/, "")
-        sub(/^[[:space:]]*#$/, "")
-
-        description = concat(description, $0)
-        next
+        text = trim(contents[4])
     }
+    # minimal indentation is used to detect global indentation of the multiple line text.
+    # Line where the tag (e.g. @description) is is considered to have no indentation.
+    minimal_indentation = -1
+
+    debug("→ @" tag_name)
+
+    # Signal the start of a multiple line tag.
+    multiple_line_tag = tag_name
+
+    # Stop processing current line, and process next line.
+    next
 }
+
 
 /^[[:space:]]*# @section/ {
   debug("→ @section")
@@ -662,29 +757,6 @@ in_description {
   section = $0
 
   next
-}
-
-/^[[:space:]]*# @example/ {
-    debug("→ @example")
-
-    in_example = 1
-
-
-    next
-}
-
-in_example {
-    if (! /^[[:space:]]*#[ ]{1,}/) {
-        debug("→ → in_example: leave")
-        in_example = 0
-    } else {
-        debug("→ → in_example: concat")
-        sub(/^[[:space:]]*#/, "")
-
-        docblock_concat("example", $0)
-        next
-    }
-
 }
 
 # Select @option lines with content.
@@ -708,7 +780,7 @@ in_example {
 # Select @arg lines with content.
 /^[[:blank:]]*#[[:blank:]]+@arg[[:blank:]]+[^[:blank:]]/ {
     debug("→ @arg")
-    
+
     arg_text = $0
 
     # Remove '# @arg ' tag.
@@ -790,9 +862,9 @@ multiple_line_docblock_name {
     # Check if current line indentation does match the previous line docblock item.
     if ($0 ~ multiple_line_identation_regex ) {
         debug("→ @" multiple_line_docblock_name " - new line")
-        
+
         # Current line has the same indentation as the stderr section.
-    
+
         # Remove indentation and trailing spaces.
         sub(/^[[:space:]]*#[[:space:]]+/, "")
         sub(/[[:space:]]+$/, "")
@@ -899,18 +971,18 @@ END {
         print render("h1", file_title)
 
         if (file_brief != "") {
-            print file_brief "\n" 
+            print file_brief "\n"
         }
 
         if (file_description != "") {
             print render("h2", "Overview")
-            print file_description "\n" 
+            print file_description "\n"
         }
     }
 
     if (toc != "") {
         print render("h2", "Index")
-        print toc "\n" 
+        print toc "\n"
     }
 
     print doc

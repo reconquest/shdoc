@@ -6,7 +6,11 @@ tests:put input <<EOF
 # @description a
 
 # @description func b
-# @set B int Error code if an erorr occured
+# @set B int Error code if an error occured
+#   with some list to add details.
+#
+#   - detail A
+#     - detail B
 # @set C array Some array thing
 b() {
 }
@@ -32,7 +36,11 @@ func b
 
 #### Variables set
 
-* **B** (int): Error code if an erorr occured
+* **B** (int): Error code if an error occured
+  with some list to add details.
+  
+  - detail A
+    - detail B
 * **C** (array): Some array thing
 EOF
 

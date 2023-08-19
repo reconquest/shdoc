@@ -22,9 +22,12 @@ tests:put input <<EOF
     #         to test how indentation is trimmed.
     #   Message without sufficient indentation (ignored).
 # @stderr Error output description.
-# @stdout tree lines messages    
-#     with trailing spaces    
-#   and random indentation.  
+# @stdout    three lines messages with list
+#
+#   - with trailing spaces    
+#     - and sub list
+#
+#   which structure should be kept.
 # @stdin Input stream description.
 test-stdout() {
 }
@@ -57,9 +60,12 @@ test-stdout dummy function.
 * one line message with indentation and trailing spaces.
 * indented two lines message
   to test how indentation is trimmed.
-* tree lines messages
-  with trailing spaces
-  and random indentation.
+* three lines messages with list
+  
+  - with trailing spaces    
+    - and sub list
+  
+  which structure should be kept.
 
 #### Output on stderr
 
