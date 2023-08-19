@@ -23,9 +23,13 @@ tests:put input <<EOF
     #         to test how indentation is trimmed.
     #   Message without sufficient indentation (ignored).
 # @stderr Error output description.
-# @stdin tree lines messages    
-#     with trailing spaces    
-#   and random indentation.
+# @stdin    three lines messages with list
+#
+#   - with trailing spaces    
+#     - and sub list
+#
+#   which structure should be kept.
+#
 # @exitcode 0 Exit code section appears before stdin section.
 test-stdin() {
 }
@@ -58,9 +62,12 @@ test-stdin dummy function.
 * one line message with indentation and trailing spaces.
 * indented two lines message
   to test how indentation is trimmed.
-* tree lines messages
-  with trailing spaces
-  and random indentation.
+* three lines messages with list
+  
+  - with trailing spaces    
+    - and sub list
+  
+  which structure should be kept.
 
 #### Output on stdout
 

@@ -1,3 +1,4 @@
+#!/bin/bash
 
 tests:put input <<EOF
 # @name Project Name

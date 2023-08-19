@@ -40,6 +40,8 @@ tests:put input <<EOF
 # @see [shdoc](https://github.com/reconquest/shdoc)
 # @see Shell documation generator [shdoc](https://github.com/reconquest/shdoc).
 # @see Shell documation generator [shdoc](https://github.com/reconquest/shdoc) (and https://github.com/reconquest/import.bash).
+# @see Shell documation generator [shdoc](https://github.com/reconquest/shdoc)
+#   (and https://github.com/reconquest/import.bash).
 test-working-see() {
 }
 
@@ -79,6 +81,8 @@ test-see dummy function.
 * [shdoc](https://github.com/reconquest/shdoc)
 * Shell documation generator [shdoc](https://github.com/reconquest/shdoc).
 * Shell documation generator [shdoc](https://github.com/reconquest/shdoc) (and [https://github.com/reconquest/import.bash](https://github.com/reconquest/import.bash)).
+* Shell documation generator [shdoc](https://github.com/reconquest/shdoc)
+  (and [https://github.com/reconquest/import.bash](https://github.com/reconquest/import.bash)).
 EOF
 
 assert
