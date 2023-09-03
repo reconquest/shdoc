@@ -71,7 +71,7 @@ BEGIN {
         debug_fd = 2
     }
     debug_file = "/dev/fd/" debug_fd
-    
+
     # declare empty arrays for url_encode
     split("", url_encode_hex_tab)
     split("", url_encode_ord)
@@ -446,23 +446,23 @@ function render_docblock_list(docblock, docblock_name, title) {
 #   long_option_regex = "--[[:alnum:]][[:alnum:]-]*((=|[[:blank:]]+)<[^>]+>)?"
 #   pipe_separator_regex = "([[:blank:]]*\\|?[[:blank:]]+)"
 #   description_regex = "([^[:blank:]|<-].*)?"
-#   
+#
 #   # Build regex matching all options
 #   short_or_long_option_regex = sprintf("(%s|%s)", short_option_regex, long_option_regex)
-# 
+#
 #   # Build regex matching multiple options separated by spaces or pipe.
 #   all_options_regex = sprintf("(%s%s)+", short_or_long_option_regex, pipe_separator_regex)
-# 
+#
 #   # Build final regex.
 #   optional_arg_regex = sprintf("^(%s)%s$", all_options_regex, description_regex)
 #   ```
-# 
+#
 #   Final regex with non-matching groups (unsupported by gawk).
-# 
+#
 #   `^((?:(?:-[[:alnum:]](?:[[:blank:]]*<[^>]+>)?|--[[:alnum:]][[:alnum:]-]*(?:(?:=|[[:blank:]]+)<[^>]+>)?)(?:[[:blank:]]*\|?[[:blank:]]+))+)([^[:blank:]|<-].*)?$`
 #
 # @param text   The text to process as an @option entry.
-# 
+#
 # @set dockblock["option"] A docblock for correctly formated options.
 # @set dockblock["option-bad"] A docblock for badly formated options.
 function process_at_option(text) {
@@ -665,7 +665,7 @@ function render_docblock(func_name, description, docblock) {
     if ("stderr" in docblock) {
         render_docblock_list(docblock, "stderr", "Output on stderr")
     }
-    
+
     render_list(docblock, "require", "Requires")
     render_list(docblock, "feature", "Features")
     render_list(docblock, "trap", "Traps")
@@ -750,7 +750,7 @@ in_description {
     } else {
         debug("→ → in_description: concat")
         sub(/^[[:space:]]*# @description[[:space:]]*/, "")
-        sub(/^[[:space:]]*#[[:space:]]*/, "")
+        sub(/^[[:space:]]*#[[:space:]]?/, "")
         sub(/^[[:space:]]*#$/, "")
 
         description = concat(description, $0)
@@ -800,7 +800,7 @@ match($0, /^[[:blank:]]*#[[:blank:]]+@(env|warning|constraint|require|feature|de
     # Trim text.
     line = trim(matches[2])
     debug("→ @" type)
-    
+
     # Add warning description to warning docblock.
     docblock[type][length(docblock[type])+1] = line
 
@@ -829,7 +829,7 @@ match($0, /^[[:blank:]]*#[[:blank:]]+@(env|warning|constraint|require|feature|de
 # Select @arg lines with content.
 /^[[:blank:]]*#[[:blank:]]+@arg[[:blank:]]+[^[:blank:]]/ {
     debug("→ @arg")
-    
+
     arg_text = $0
 
     # Remove '# @arg ' tag.
@@ -911,9 +911,9 @@ multiple_line_docblock_name {
     # Check if current line indentation does match the previous line docblock item.
     if ($0 ~ multiple_line_identation_regex ) {
         debug("→ @" multiple_line_docblock_name " - new line")
-        
+
         # Current line has the same indentation as the stderr section.
-    
+
         # Remove indentation and trailing spaces.
         sub(/^[[:space:]]*#[[:space:]]+/, "")
         sub(/[[:space:]]+$/, "")
@@ -1020,18 +1020,18 @@ END {
         print render("h1", file_title)
 
         if (file_brief != "") {
-            print file_brief "\n" 
+            print file_brief "\n"
         }
 
         if (file_description != "") {
             print render("h2", "Overview")
-            print file_description "\n" 
+            print file_description "\n"
         }
     }
 
     if (toc != "") {
         print render("h2", "Index")
-        print toc "\n" 
+        print toc "\n"
     }
 
     print doc
