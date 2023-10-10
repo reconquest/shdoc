@@ -8,26 +8,54 @@ definitions, and creates a markdown file with ready to use documentation.
 
 ## Index
 
-* [Example](#example)
-* [Annotations](#annotations)
-* [Usage](#usage)
-* [Installation](#installation)
-* [More examples](#examples)
-* [License](#license)
+- [Index](#index)
+- [Example](#example)
+  - [Source file](#source-file)
+  - [Output](#output)
+- [Features](#features)
+  - [`@name`](#name)
+  - [`@file`](#file)
+  - [`@brief`](#brief)
+  - [`@description`](#description)
+  - [`@section`](#section)
+  - [`@example`](#example-1)
+  - [`@option`](#option)
+  - [`@arg`](#arg)
+  - [`@noargs`](#noargs)
+  - [`@set`](#set)
+  - [`@env`](#env)
+  - [`@exitcode`](#exitcode)
+  - [`@stdin`](#stdin)
+  - [`@stdout`](#stdout)
+  - [`@stderr`](#stderr)
+  - [`@see`](#see)
+  - [`@warning`](#warning)
+  - [`@require`](#require)
+  - [`@feature`](#feature)
+  - [`@trap`](#trap)
+  - [`@deprecated`](#deprecated)
+  - [`@internal`](#internal)
+- [Usage](#usage)
+- [Installation](#installation)
+  - [Arch Linux](#arch-linux)
+  - [Using Git](#using-git)
+  - [Others](#others)
+- [Examples](#examples)
 
 ## Example
 
-<table border="0">
- <tr>
-    <td style="vertical-align: top">
-
 Generate documentation with the following command:
+
 ~~~bash
 $ shdoc < lib.sh > doc.md
 ~~~
 
-_Source_ [examples/readme-example.sh](examples/readme-example.sh)<br />
-_Output_: [examples/readme-example.md](examples/readme-example.md)<br/><br/>
+_Source_ [examples/readme-example.sh](examples/readme-example.sh)
+
+_Output_: [examples/readme-example.md](examples/readme-example.md)
+
+### Source file
+
 ~~~bash
 #!/bin/bash
 # @file libexample
@@ -40,7 +68,6 @@ _Output_: [examples/readme-example.md](examples/readme-example.md)<br/><br/>
 #      * etc
 
 # @description My super function.
-# Not thread-safe.
 #
 # @example
 #    echo "test: $(say-hello World)"
@@ -59,6 +86,20 @@ _Output_: [examples/readme-example.md](examples/readme-example.md)<br/><br/>
 # @exitcode 0 If successful.
 # @exitcode 1 If an empty string passed.
 #
+# @warning Not thread-safe.
+#
+# @deprecated use yell-hello instead
+#
+# @require ubuntu>20
+#
+# @trap INT EXIT HUP QUIT ABRT TERM to manage temp files removal
+#
+# @feature Retry::default
+# 
+# @set HELLO_HAS_BEEN_SAID int set it to 1 if successful
+#
+# @env LANGUAGE string provide this variable to translate hello world in given language (default value: en-GB)
+#
 # @see validate()
 # @see [shdoc](https://github.com/reconquest/shdoc).
 say-hello() {
@@ -71,9 +112,7 @@ say-hello() {
 }
 ~~~
 
-
-</td>
-<td>
+### Output
 
 ~~~markdown
 # libexample
@@ -94,8 +133,11 @@ The project solves lots of problems:
 
 ### say-hello
 
+[![Deprecated use yell-hello instead](https://img.shields.io/badge/Deprecated-use%20yell%2D%2Dhello%20instead-red.svg)](#)
+[![Featuring Retry::default](https://img.shields.io/badge/Feature-Retry%3A%3A%3A%3Adefault-green.svg)](#)
+[![1 Warning(s)](https://img.shields.io/badge/Warnings-1-yellow.svg)](#)
+
 My super function.
-Not thread-safe.
 
 #### Example
 
@@ -117,6 +159,14 @@ echo "test: $(say-hello World)"
 
 * **$1** (string): A value to print
 
+#### Environment variables
+
+* **LANGUAGE** (string): provide this variable to translate hello world in given language (default value: en-GB)
+
+#### Variables set
+
+* **HELLO_HAS_BEEN_SAID** (int): set it to 1 if successful
+
 #### Exit codes
 
 * **0**: If successful.
@@ -132,16 +182,28 @@ echo "test: $(say-hello World)"
 * Output 'Oups !' on error.
   It did it again.
 
+#### Requires
+
+* ubuntu>20
+
+#### Features
+
+* Retry::default
+
+#### Traps
+
+* INT EXIT HUP QUIT ABRT TERM to manage temp files removal
+
+#### Warnings
+
+* Not thread-safe.
+
 #### See also
 
 * [validate()](#validate)
 * [shdoc](https://github.com/reconquest/shdoc).
 
 ~~~
-
-</td>
-</tr></table>
-
 
 ## Features
 
@@ -214,6 +276,16 @@ say-hello() {
 }
 ```
 
+The annotation accepts one argument to override default bash language
+**Example**
+```bash
+# @example text
+#    test: Hello World !
+say-hello() {
+    ...
+}
+```
+
 ### `@option`
 
 A description of an option expected to be passed while calling the function.
@@ -272,6 +344,21 @@ Can be specified multiple times to describe any number of variables
 ```bash
 # @description Sets hello to the variable REPLY
 # @set REPLY string Greeting message.
+set-hello() {
+    ...
+}
+```
+
+### `@env`
+
+A description of a global variable that is used during the call to this function.
+Can be specified multiple times to describe any number of variables
+
+**Example**
+
+```bash
+# @description Sets hello to the variable REPLY
+# LANGUAGE string provide this variable to translate hello world in given language (default value: en-GB)
 set-hello() {
     ...
 }
@@ -348,6 +435,83 @@ say-hello-world() {
     ...
 }
 ```
+
+### `@warning`
+
+Indicates some attention points related to the given function
+
+**Example**
+
+```bash
+# @warning Performance : saying hello world to each people on Earth could lead to performance issues
+say-hello-world() {
+    ...
+}
+```
+
+Note that a badge will also be generated before function description indicating the number of warnings
+
+[![1 Warning(s)](https://img.shields.io/badge/Warnings-1-yellow.svg)](#warning)
+
+### `@require`
+
+Indicates some requirements needed by the given function
+
+**Example**
+
+```bash
+# @require ubuntu>20
+say-hello-world() {
+    ...
+}
+```
+
+### `@feature`
+
+Indicates some special features used by the given function
+
+**Example**
+
+```bash
+# @feature Retry::default
+# @feature sudo
+say-hello-world() {
+    ...
+}
+```
+
+### `@trap`
+
+Indicates that traps are used by the given function
+
+**Example**
+
+```bash
+# @trap INT EXIT HUP QUIT ABRT TERM to manage temp files removal
+say-hello-world() {
+    ...
+}
+```
+
+### `@deprecated`
+
+Indicates that the function is deprecated
+
+**Example**
+
+```bash
+# @deprecated use yell-hello-world instead
+say-hello-world() {
+    ...
+}
+```
+
+Note that a badge will also be generated before function description indicating the reason of the deprecation if specified
+
+[![Deprecated use yell-hello-world instead](https://img.shields.io/badge/Deprecated-use%20yell--hello--world%20instead-red.svg)](#warning)
+
+Or this simple badge if no reason is specified
+[![Deprecated True](https://img.shields.io/badge/Deprecated-True-red.svg)](#warning)
 
 ### `@internal`
 
