@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 tests:put input <<EOF
-#!/bin/bash
+#!/usr/bin/env bash
 
 # @arg \$1 string fn var.
 # @stdout result of fn

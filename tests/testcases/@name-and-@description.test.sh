@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 tests:put input <<EOF
 # @name Project Name

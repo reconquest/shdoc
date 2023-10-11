@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 tests:put input <<EOF
-#!/bin/bash
+#!/usr/bin/env bash
 
 # @description a desc for fn1
 fn1() {
