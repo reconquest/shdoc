@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 tests:put input <<EOF
 # @description Same, as \`tests:eval\`, but writes stdout into given variable and

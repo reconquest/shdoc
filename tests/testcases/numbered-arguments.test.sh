@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # @file test/testcases/@numbered-arguments.test.sh
 # @author Pierre-Yves Landuré < contact at biapy dot fr >
 # @brief Test cases for @arg keyword.

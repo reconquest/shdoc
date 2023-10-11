@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # @file libexample
 # @brief A library that solves some common problems.
 # @description

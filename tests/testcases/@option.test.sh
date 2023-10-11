@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # @file test/testcases/@optional-arguments.test.sh
 # @author Pierre-Yves Landuré < contact at biapy dot fr >
 # @brief Test cases for @option keyword with options.

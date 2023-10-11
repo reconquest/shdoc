@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # @file test/testcases/@stderr.test.sh
 # @author Pierre-Yves Landuré < contact at biapy dot fr >
 # @brief Test cases for @stderr keyword.
