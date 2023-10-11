@@ -191,6 +191,19 @@ function super() {
 }
 ```
 
+### `@deprecated`
+
+Whether or not the function is deprecated. If it is, a short deprecation notice
+will be prepended to the description.
+
+**Example**
+```bash
+# @deprecated
+say-hello() {
+    ...
+}
+```
+
 ### `@section`
 
 The name of a section of the file. Can be used to group functions.
