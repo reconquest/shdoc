@@ -58,11 +58,11 @@ Tests for shdoc processing of @see keyword.
 
 * [test-working-see](#test-working-see)
 
-### test-working-see
+## test-working-see
 
 test-see dummy function.
 
-#### See also
+### See also
 
 * [test-failing-see](#test-failing-see)
 * [test-working-see test-failing-see](#test-working-see-test-failing-see)

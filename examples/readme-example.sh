@@ -38,3 +38,20 @@ say-hello() {
 
     echo "Hello $1"
 }
+
+# @section Sub-section
+# @description Some grouped functions.
+# Sections allow a sub-set of other annotations and will ignore unsupported ones.
+# @see README
+# @example
+#     # @section example
+#     # @see [some-link](./README.md)
+#     # @example ...
+
+# @description This is nested
+deeper-level() { echo; }
+
+# @endsection
+
+# @description Back up again
+up-again() { echo; }

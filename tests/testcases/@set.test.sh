@@ -26,11 +26,11 @@ a
 
 * [b](#b)
 
-### b
+## b
 
 func b
 
-#### Variables set
+### Variables set
 
 * **B** (int): Error code if an erorr occured
 * **C** (array): Some array thing

@@ -11,8 +11,10 @@
 
 tests:put input <<EOF
 # @name shdoc @arg tests
-# @brief Test @arg functionnality.
+# @brief Test @arg functionality.
 # @description Tests for shdoc processing of @arg keyword.
+
+# @description The test function
 # @arg \$4 int 4th arg.
 # @arg \$6 string 6th arg.
 # @set ARG_TESTED A variable set by the function.
@@ -36,7 +38,7 @@ EOF
 tests:put expected <<EOF
 # shdoc @arg tests
 
-Test @arg functionnality.
+Test @arg functionality.
 
 ## Overview
 
@@ -46,17 +48,17 @@ Tests for shdoc processing of @arg keyword.
 
 * [test-arg](#test-arg)
 
-### test-arg
+## test-arg
 
-Tests for shdoc processing of @arg keyword.
+The test function
 
-#### Example
+### Example
 
 \`\`\`bash
 test-arg 'my-tested-argument'
 \`\`\`
 
-#### Arguments
+### Arguments
 
 * **\$1** (string): 1st arg.
 * **\$2** (string): 2nd arg.
@@ -71,7 +73,7 @@ test-arg 'my-tested-argument'
 * **\$11** (string): 11th arg.
 * **...** (string): All other arguments.
 
-#### Variables set
+### Variables set
 
 * **ARG_TESTED** (A): variable set by the function.
 

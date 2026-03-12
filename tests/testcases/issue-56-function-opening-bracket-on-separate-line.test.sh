@@ -22,11 +22,11 @@ tests:put expected <<EOF
 
 * [say-hello](#say-hello)
 
-### say-hello
+## say-hello
 
 My super function.
 
-#### Arguments
+### Arguments
 
 * **\$1** (string): A value to print
 

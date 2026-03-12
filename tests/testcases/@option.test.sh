@@ -17,8 +17,10 @@
 
 tests:put input <<EOF
 # @name shdoc @option tests for options
-# @brief Test @option functionnality for options.
+# @brief Test @option functionality for options.
 # @description Tests for shdoc processing of @option keyword.
+
+# @description documented test function
 # @option -2 Run twice as fast.
 # @option -h Show help message.
 # @option --help Show help message.
@@ -44,7 +46,7 @@ EOF
 tests:put expected <<EOF
 # shdoc @option tests for options
 
-Test @option functionnality for options.
+Test @option functionality for options.
 
 ## Overview
 
@@ -54,17 +56,17 @@ Tests for shdoc processing of @option keyword.
 
 * [test-arg](#test-arg)
 
-### test-arg
+## test-arg
 
-Tests for shdoc processing of @option keyword.
+documented test function
 
-#### Example
+### Example
 
 \`\`\`bash
 test-arg 'my-tested-argument'
 \`\`\`
 
-#### Options
+### Options
 
 * **-2**
 
@@ -117,7 +119,7 @@ test-arg 'my-tested-argument'
 * option with invalid format.
 * ---another option with invalid format.
 
-#### Variables set
+### Variables set
 
 * **ARG_TESTED** (A): variable set by the function.
 

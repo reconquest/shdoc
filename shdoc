@@ -61,6 +61,8 @@ BEGIN {
         debug_fd = 2
     }
     debug_file = "/dev/fd/" debug_fd
+
+    function_nesting = 2
 }
 
 # @description Display the given error message with its line number on stderr.
@@ -108,6 +110,11 @@ function process_function(text) {
     }
 
     debug("→ function")
+    if (internal_section){
+        debug("→ → function: contained in internal section, skip")
+        return
+    }
+
     if (is_internal) {
         debug("→ → function: it is internal, skip")
         is_internal = 0
@@ -124,9 +131,9 @@ function process_function(text) {
         )
 
         # Add function documentation to output.
-        doc = concat(doc, render_docblock(func_name, description, docblock))
+        doc = concat(doc, render_docblock(func_name, description, docblock, function_nesting))
         # Add function link to table of contents.
-        toc = concat(toc, render_toc_item(func_name))
+        toc = concat(toc, render_toc_item(func_name, function_nesting))
     }
 
     # Function document has been added to output.
@@ -178,15 +185,16 @@ function render_toc_link(text) {
       # @see https://github.com/jch/html-pipeline/blob/master/lib/html/pipeline/toc_filter.rb#L44-L45
       url = tolower(url)
       gsub(/[^[:alnum:] _-]/, "", url)
-      gsub(/_/, "", url)
       gsub(/ /, "-", url)
     }
 
     return "[" text "](#" url ")"
 }
 
-function render_toc_item(title) {
-    return "* " render_toc_link(title)
+function render_toc_item(title, nesting_level) {
+    nesting_depth = (nesting_level - 2) * 2 + 2
+    print_format = "%" nesting_depth "s"
+    return sprintf(print_format, "* ") render_toc_link(title)
 }
 
 function unindent(text) {
@@ -232,8 +240,21 @@ function unindent(text) {
 function reset() {
     debug("→ reset()")
 
-    delete docblock
+    # Make sure the variable exists before deleting. 
+    # Without this, shdoc will fail for fully unannotated scripts.
+    # This might happen when batch-handling a list of files
+    if (typeof(docblock) != "unassigned"){
+        delete docblock
+    }
     description = ""
+}
+
+function reset_section() {
+    debug("→ reset_section()")
+    
+    delete docblock_filter
+    section = ""
+    section_description = ""
 }
 
 function handle_description() {
@@ -250,14 +271,16 @@ function handle_description() {
     }
 
     if (section != "" && section_description == "") {
-      debug("→ → section description: added")
-      section_description = description
-      return;
+        debug("→ → section description: added")
+        section_description = description
+        description = ""
+        return;
     }
 
-    if (file_description == "") {
+    if (file_intro_enabled != 0 && file_description == "" && in_file_block == 0) {
         debug("→ → file description: added")
-        file_description = description
+        file_description = description 
+        description = ""
         return;
     }
 }
@@ -317,12 +340,10 @@ function docblock_concat(key, value) {
 function docblock_push(key, value) {
     new_item_index = length(docblock[key])
     # Reinitialize docblock key value if it is empty to allow for array storage.
-    if(new_item_index == 0)
-    {
+    if(new_item_index == 0) {
         delete docblock[key]
     }
-    if(isarray(value))
-    {
+    if(isarray(value)) {
 
         # Value is an array. Add its contents key by key to the docblock.
         # Note that is only allow for single dimension value array.
@@ -361,8 +382,8 @@ function docblock_append(docblock_name, text) {
 # @param title          Title of the rendered section.
 #
 # @stdout A unordered list of the dockblock entries.
-function render_docblock_list(docblock, docblock_name, title) {
-    push(lines, render("h4", title))
+function render_docblock_list(docblock, docblock_name, title, nesting) {
+    push(lines, render(nesting, title))
     # Initialize list item.
     item = ""
     # For each dockblock line.
@@ -451,26 +472,66 @@ function process_at_option(text) {
     }
 }
 
-function render_docblock(func_name, description, docblock) {
+function process_section() {
+    debug("→ process_section")
+    if (!section_active || section == "") {
+        debug("→ → no valid section name - skip")
+        return;
+    }
+    if (is_internal){
+        debug("→ → section marked as internal - skip")
+        internal_section = 1
+        is_internal = 0
+        reset_section();
+        return;
+    }
+
+    debug("→ → section: [" section "]")
+    debug("→ → section_description: [" section_description "]")
+
+    # support a subset of additional annotations for sections themselves.
+    docblock_filter["example"] = 1
+    docblock_filter["see"] = 1
+    docblock_filter["set"] = 1
+
+    toc = concat(toc, render_toc_item(section, 2))
+
+    result = render_docblock(section, section_description, docblock, 2)
+    doc = concat(doc, result)
+
+    reset_section();
+}
+
+function docblock_allows(key) {
+    debug("→ → check docblock filter for: [" key "]")
+    if (!isarray(docblock_filter) || length(docblock_filter) == 0) {
+        debug("→ → → no filters defined")
+        return 1
+    }
+    if (key in docblock_filter) {
+        debug("→ → → filter is: [" docblock_filter[key] "]")
+        return docblock_filter[key]
+    } else {
+        debug("→ → → not allowed/defined: [" key "]")
+        return 0
+    }
+}
+
+function render_docblock(func_name, description, docblock, nesting) {
     debug("→ render_docblock")
-    debug("→ → func_name: [" func_name "]")
+    debug("→ → block_name: [" func_name "]")
     debug("→ → description: [" description "]")
+    debug("→ → header_depth: [" nesting "]")
 
     # Reset lines variable to allow for a new array creation.
     delete lines
 
-    if (section != "") {
-      lines[0] = render("h2", section)
-      if (section_description != "") {
-        push(lines, section_description)
-        # Add empty line to signal end of description.
-        push(lines, "")
-      }
-      section = ""
-      section_description = ""
-      push(lines, render("h3", func_name))
-    } else {
-      lines[0] = render("h3", func_name)
+    nesting_top = "h" nesting;
+    nesting_one = "h" (nesting + 1);
+    nesting_two = "h" (nesting + 2);
+
+    if (func_name) {
+      lines[0] = render(nesting_top, func_name)
     }
 
     if (description != "") {
@@ -478,9 +539,11 @@ function render_docblock(func_name, description, docblock) {
         # Add empty line to signal end of description.
         push(lines, "")
     }
+    
+    filter_active = isarray(docblock_filter)
 
-    if ("example" in docblock) {
-        push(lines, render("h4", "Example"))
+    if (docblock_allows("example") && "example" in docblock) {
+        push(lines, render(nesting_one, "Example"))
         push(lines, render("code", "bash"))
         push(lines, unindent(docblock["example"]))
         push(lines, render("/code"))
@@ -488,9 +551,9 @@ function render_docblock(func_name, description, docblock) {
     }
 
     if ("option" in docblock || "option-bad" in docblock) {
-        push(lines, render("h4", "Options"))
+        push(lines, render(nesting_one, "Options"))
 
-        if ("option" in docblock) {
+        if (docblock_allows("option") && "option" in docblock) {
             for (i in docblock["option"]) {
                 # Add strong around options, but exclude pipes.
                 term = render("strong", docblock["option"][i]["term"])
@@ -507,7 +570,7 @@ function render_docblock(func_name, description, docblock) {
             }
         }
 
-        if ("option-bad" in docblock) {
+        if (docblock_allows("option-bad") && "option-bad" in docblock) {
             for (i in docblock["option-bad"]) {
                 item = render("li", docblock["option-bad"][i])
                 push(lines, item)
@@ -518,8 +581,8 @@ function render_docblock(func_name, description, docblock) {
         }
     }
 
-    if ("arg" in docblock) {
-        push(lines, render("h4", "Arguments"))
+    if (docblock_allows("arg") && "arg" in docblock) {
+        push(lines, render(nesting_one, "Arguments"))
 
         # Sort args by indexes (i.e. by argument number.)
         asorti(docblock["arg"], sorted_indexes)
@@ -537,15 +600,15 @@ function render_docblock(func_name, description, docblock) {
         push(lines, "")
     }
 
-    if ("noargs" in docblock) {
+    if (docblock_allows("noargs") && "noargs" in docblock) {
         push(lines, render("i", "Function has no arguments."))
 
         # Add empty line to signal end of list in markdown.
         push(lines, "")
     }
 
-    if ("set" in docblock) {
-        push(lines, render("h4", "Variables set"))
+    if (docblock_allows("set") && "set" in docblock) {
+        push(lines, render(nesting_one, "Variables set"))
         for (i in docblock["set"]) {
             item = docblock["set"][i]
             item = render("set", item)
@@ -557,8 +620,8 @@ function render_docblock(func_name, description, docblock) {
         push(lines, "")
     }
 
-    if ("exitcode" in docblock) {
-        push(lines, render("h4", "Exit codes"))
+    if (docblock_allows("exitcode") && "exitcode" in docblock) {
+        push(lines, render(nesting_one, "Exit codes"))
         for (i in docblock["exitcode"]) {
             item = render("li", render("exitcode", docblock["exitcode"][i]))
             push(lines, item)
@@ -568,20 +631,20 @@ function render_docblock(func_name, description, docblock) {
         push(lines, "")
     }
 
-    if ("stdin" in docblock) {
-        render_docblock_list(docblock, "stdin", "Input on stdin")
+    if (docblock_allows("stdin") && "stdin" in docblock) {
+        render_docblock_list(docblock, "stdin", "Input on stdin", nesting_one)
     }
 
-    if ("stdout" in docblock) {
-        render_docblock_list(docblock, "stdout", "Output on stdout")
+    if (docblock_allows("stdout") && "stdout" in docblock) {
+        render_docblock_list(docblock, "stdout", "Output on stdout", nesting_one)
     }
 
-    if ("stderr" in docblock) {
-        render_docblock_list(docblock, "stderr", "Output on stderr")
+    if (docblock_allows("stderr") && "stderr" in docblock) {
+        render_docblock_list(docblock, "stderr", "Output on stderr", nesting_one)
     }
 
-    if ("see" in docblock) {
-        push(lines, render("h4", "See also"))
+    if (docblock_allows("see") && "see" in docblock) {
+        push(lines, render(nesting_one, "See also"))
         for (i in docblock["see"]) {
             item = render("li", render_toc_link(docblock["see"][i]))
             push(lines, item)
@@ -605,17 +668,39 @@ function debug(msg) {
     debug("line: [" $0 "]")
 }
 
+/^[[:space:]]*#.*?%%[a-zA-Z0-9_\-]+%%.*/ {
+    debug("→ found placeholders")
+    splitted[0] = ""
+    patsplit($0, splitted, /%%([a-zA-Z0-9_\-]+?)%%/)
+
+    for(i in splitted) {
+        env_name = splitted[i]
+        gsub(/%%/, "", env_name)
+        if (ENVIRON[env_name] != ""){
+            debug("→ → replace [" splitted[i] "] with " ENVIRON[env_name])
+            gsub(splitted[i], ENVIRON[env_name])
+        }
+    }
+}
+
 /^[[:space:]]*# @internal/ {
     debug("→ @internal")
-    is_internal = 1
+    # ignore the flag while we are in an internal section
+    # to prevent dangling values not reset by function blocks
+    # because internal_section is checked first in process_function
+    if (!internal_section){
+        is_internal = 1
+    }
 
     next
 }
 
 /^[[:space:]]*# @(name|file)/ {
     debug("→ @name|@file")
-    sub(/^[[:space:]]*# @(name|file) /, "")
+    sub(/^[[:space:]]*# @(name|file)[[:space:]]*/, "")
+    file_intro_enabled = 1
     file_title = $0
+    in_file_block = 1
 
     next
 }
@@ -645,30 +730,49 @@ in_description {
         in_description = 0
 
         handle_description()
+    } else if (match($0, /^[[:space:]]*#\|/)) {
+        debug("→ → in_description: literal [" $0 "] (keep spaces)")
+        sub(/^[[:space:]]*#\|/, "")
+        description = concat(description, $0)
+        next
     } else {
-        debug("→ → in_description: concat")
         sub(/^[[:space:]]*# @description[[:space:]]*/, "")
         sub(/^[[:space:]]*#[[:space:]]*/, "")
         sub(/^[[:space:]]*#$/, "")
-
+        debug("→ → in_description: concat [" $0 "]")
         description = concat(description, $0)
         next
     }
 }
 
+/^[[:space:]]*# @endsection/ {
+  debug("→ @endsection")
+  process_section()
+  section = ""
+  section_description = ""
+  section_active = 0
+  function_nesting = 2
+  internal_section = 0
+
+  next
+}
+
 /^[[:space:]]*# @section/ {
   debug("→ @section")
   sub(/^[[:space:]]*# @section /, "")
+  if (internal_section){
+      internal_section = 0
+  }
   section = $0
+  section_active = 1
+  function_nesting = 3
 
   next
 }
 
 /^[[:space:]]*# @example/ {
     debug("→ @example")
-
     in_example = 1
-
 
     next
 }
@@ -719,10 +823,10 @@ in_example {
 
     # Test if @arg is a numbered item (or $@).
     if(match(arg_text, /^\$([0-9]+|@)[[:space:]]/, contents)) {
-        debug(" → → found arg $" arg_number)
-
         # Fetch matched values.
         arg_number = contents[1]
+        
+        debug(" → → found arg $" arg_number)
 
         # Zero pad argument number for sorting.
         if(arg_number ~ /[0-9]+/){
@@ -835,14 +939,15 @@ match($0, /^([[:blank:]]*#[[:blank:]]+)@(stdin|stdout|stderr)[[:blank:]]+(.*[^[:
 # - `function function_name () {`
 # - `function_name () {`
 # - `function_name {`
-/^[[:blank:]]*(function[[:blank:]]+)?([a-zA-Z0-9_\-:-\\.]+)[[:blank:]]*(\([[:blank:]]*\))?[[:blank:]]*\{/ \
+/^[[:blank:]]*(function[[:blank:]]+)?([a-zA-Z0-9_\-:-\\.]+)[[:blank:]]*(\([[:blank:]]*\))?[[:blank:]]*[({]/ \
 {
     process_function($0)
+    function_declaration_complete = 1
 }
 
 # If line look like a function declaration but is missing opening bracket,
 /^[[:blank:]]*(function[[:blank:]]+)?([a-zA-Z0-9_\-:-\\.]+)[[:blank:]]*(\([[:blank:]]*\))?/ \
-{
+    && !function_declaration_complete {
     # store it for future use
     debug("→ look like a function declaration, store line")
     function_declaration = $0
@@ -850,7 +955,7 @@ match($0, /^([[:blank:]]*#[[:blank:]]+)@(stdin|stdout|stderr)[[:blank:]]+(.*[^[:
 }
 
 # Handle lone opening bracket if previous line is a function declaration.
-/^[[:blank:]]*\{/ \
+/^[[:blank:]]*[({]/ \
     && function_declaration != "" {
     debug("→ multi-line function declaration.")
     # Process function declaration.
@@ -868,13 +973,26 @@ match($0, /^([[:blank:]]*#[[:blank:]]+)@(stdin|stdout|stderr)[[:blank:]]+(.*[^[:
 # Handle non comment lines.
 /^[^#]*$/ {
     debug("→ break")
+    
+    if(file_intro_enabled && in_file_block && isarray(docblock) && length(docblock)){
+        # support a subset of additional annotations for @file sections.
+        debug("handle file docblock")
+        docblock_filter["example"] = 1
+        docblock_filter["see"] = 1
+        docblock_filter["set"] = 1
+        file_annoblock = render_docblock("", "", docblock, 1)
+        delete docblock_filter
+    }
 
     # Line is not an opening bracket,
     # this is not a function declaration.
     function_declaration = ""
+    function_declaration_complete = 0
+    in_file_block = 0
 
     # Add current (section) description to output.
     handle_description();
+    process_section();
 
     # Reset docblock.
     reset()
@@ -895,8 +1013,10 @@ END {
     debug("→ → file_description: [" file_description "]")
     debug("→ END }")
 
-    if (file_title != "") {
-        print render("h1", file_title)
+    if (file_intro_enabled) {
+        if (file_title != "") {
+            print render("h1", file_title)
+        }
 
         if (file_brief != "") {
             print file_brief "\n" 
@@ -904,7 +1024,11 @@ END {
 
         if (file_description != "") {
             print render("h2", "Overview")
-            print file_description "\n" 
+            print file_description "\n"
+        }
+        
+        if (file_annoblock != "") {
+            print file_annoblock
         }
     }
 

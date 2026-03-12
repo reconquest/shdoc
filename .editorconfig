@@ -1,0 +1,12 @@
+root = true
+
+[*]
+end_of_line = lf
+charset = utf-8
+
+[shdoc]
+trim_trailing_whitespace = false
+
+[*.md]
+insert_final_newline = true
+trim_trailing_whitespace = false

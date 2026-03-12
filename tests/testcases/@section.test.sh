@@ -1,3 +1,9 @@
+# Basic test of sections:
+# - title
+# - description
+# - must appear in toc
+# - nested functions should be nested in toc also
+# - should also appear when there is no function in it
 
 tests:put input <<EOF
 # @name Project Name
@@ -6,8 +12,8 @@ tests:put input <<EOF
 # b
 
 # @section Section A
-# @description a
-# a
+# @description line 1
+# line 2
 
 # @description func a
 # line a 2
@@ -23,6 +29,11 @@ a() {
 # @noargs
 b() {
 }
+
+# @section Generic block without functions
+# @description Here comes the main logic
+# which uses the building blocks from above
+
 EOF
 
 tests:put expected <<EOF
@@ -37,13 +48,16 @@ b
 
 ## Index
 
-* [a](#a)
-* [b](#b)
+* [Section A](#section-a)
+  * [a](#a)
+* [Section B](#section-b)
+  * [b](#b)
+* [Generic block without functions](#generic-block-without-functions)
 
 ## Section A
 
-a
-a
+line 1
+line 2
 
 ### a
 
@@ -62,6 +76,11 @@ func b
 ab
 
 _Function has no arguments._
+
+## Generic block without functions
+
+Here comes the main logic
+which uses the building blocks from above
 
 EOF
 
